@@ -1,4 +1,4 @@
-use crate::instruction::{Address, Data8, Data16, Register8, Register16};
+use crate::instruction::{Address, Data8, Data16, Register, RegisterPair};
 
 static MEMORY_SIZE_BYTES: usize = 2 << 16;
 pub struct Memory([u8; MEMORY_SIZE_BYTES]);
@@ -48,43 +48,43 @@ impl RegisterMap {
         }
     }
 
-    pub fn get_8(&self, register: Register8, memory: &Memory) -> Data8 {
+    pub fn get_8(&self, register: Register, memory: &Memory) -> Data8 {
         match register {
-            Register8::B => {
+            Register::B => {
                 return self.b;
             }
-            Register8::C => {
+            Register::C => {
                 return self.c;
             }
-            Register8::D => {
+            Register::D => {
                 return self.d;
             }
-            Register8::E => {
+            Register::E => {
                 return self.e;
             }
-            Register8::H => {
+            Register::H => {
                 return self.h;
             }
-            Register8::L => {
+            Register::L => {
                 return self.l;
             }
-            Register8::M => {
-                let address = self.get_16(Register16::Hl);
+            Register::M => {
+                let address = self.get_16(RegisterPair::Hl);
 
                 return memory.read_u8(address);
             }
-            Register8::A => {
+            Register::A => {
                 return self.a;
             }
         }
     }
 
-    pub fn get_16(&self, register: Register16) -> Data16 {
+    pub fn get_16(&self, register: RegisterPair) -> Data16 {
         match register {
-            Register16::Bc => Data16::new(self.c, self.b),
-            Register16::De => Data16::new(self.e, self.d),
-            Register16::Hl => Data16::new(self.l, self.h),
-            Register16::Sp => self.sp,
+            RegisterPair::Bc => Data16::new(self.c, self.b),
+            RegisterPair::De => Data16::new(self.e, self.d),
+            RegisterPair::Hl => Data16::new(self.l, self.h),
+            RegisterPair::Sp => self.sp,
         }
     }
 }
@@ -112,11 +112,11 @@ impl Machine {
         &self.memory
     }
 
-    pub fn register_8(&self, register: Register8) -> Data8 {
+    pub fn register_8(&self, register: Register) -> Data8 {
         self.registers().get_8(register, self.memory())
     }
 
-    pub fn register_16(&self, register: Register16) -> Data16 {
+    pub fn register_16(&self, register: RegisterPair) -> Data16 {
         self.registers().get_16(register)
     }
 

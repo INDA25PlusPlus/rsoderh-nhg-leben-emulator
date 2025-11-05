@@ -222,6 +222,7 @@ impl<'a> Reader<'a> {
     }
 
     pub fn expect_hex_8<'b>(&'b mut self) -> ReadResult<'a, u8> {
-        self.expect(b'0')?;
+        todo!()
+        // self.expect(b'0')?;
     }
 }

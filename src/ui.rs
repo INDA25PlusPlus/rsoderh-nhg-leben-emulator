@@ -1,8 +1,5 @@
 use std::{
-    cell::{LazyCell, RefCell},
-    io,
-    sync::{LazyLock, mpsc},
-    time::Duration,
+    cell::{LazyCell, RefCell}, fmt::Display, io, sync::{LazyLock, mpsc}, time::Duration
 };
 
 use anyhow::anyhow;
@@ -21,7 +18,7 @@ use tui::{
 };
 
 use crate::{
-    instruction::{Data16, Register, Register8, Register16},
+    instruction::{Data16, Register, RegisterPair},
     machine::Machine,
     ui::memory_view::MemoryView,
 };
@@ -48,6 +45,21 @@ fn parse_hex(hex: &str) -> anyhow::Result<Color> {
         .map_err(|err| anyhow!("Couldn't parse '{}': Invalid color component: {}", hex, err))?;
 
     Ok(Color::Rgb(red, green, blue))
+}
+
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+pub enum RegisterSingleOrPair {
+    Single(Register),
+    Pair(RegisterPair),
+}
+
+impl Display for RegisterSingleOrPair {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RegisterSingleOrPair::Single(register) => register.fmt(f),
+            RegisterSingleOrPair::Pair(register_pair) => register_pair.fmt(f),
+        }
+    }
 }
 
 #[allow(unused)]
@@ -180,26 +192,26 @@ impl Ui {
             .expect("We created 3 areas");
 
         const ROWS: usize = 5;
-        let register_grid: [[Option<Register>; ROWS]; 3] = [
+        let register_grid: [[Option<RegisterSingleOrPair>; ROWS]; 3] = [
             [
-                Some(Register::Register8(Register8::B)),
-                Some(Register::Register8(Register8::D)),
-                Some(Register::Register8(Register8::H)),
-                Some(Register::Register8(Register8::M)),
-                Some(Register::Register8(Register8::A)),
+                Some(RegisterSingleOrPair::Single(Register::B)),
+                Some(RegisterSingleOrPair::Single(Register::D)),
+                Some(RegisterSingleOrPair::Single(Register::H)),
+                Some(RegisterSingleOrPair::Single(Register::M)),
+                Some(RegisterSingleOrPair::Single(Register::A)),
             ],
             [
-                Some(Register::Register8(Register8::C)),
-                Some(Register::Register8(Register8::E)),
-                Some(Register::Register8(Register8::L)),
+                Some(RegisterSingleOrPair::Single(Register::C)),
+                Some(RegisterSingleOrPair::Single(Register::E)),
+                Some(RegisterSingleOrPair::Single(Register::L)),
                 None,
                 None,
             ],
             [
-                Some(Register::Register16(Register16::Bc)),
-                Some(Register::Register16(Register16::De)),
-                Some(Register::Register16(Register16::Hl)),
-                Some(Register::Register16(Register16::Sp)),
+                Some(RegisterSingleOrPair::Pair(RegisterPair::Bc)),
+                Some(RegisterSingleOrPair::Pair(RegisterPair::De)),
+                Some(RegisterSingleOrPair::Pair(RegisterPair::Hl)),
+                Some(RegisterSingleOrPair::Pair(RegisterPair::Sp)),
                 None,
             ],
         ];
@@ -217,14 +229,14 @@ impl Ui {
                     continue;
                 };
                 let value_string = match register {
-                    Register::Register8(register) => {
+                    RegisterSingleOrPair::Single(register) => {
                         let value = self
                             .machine
                             .registers()
                             .get_8(register, self.machine.memory());
                         format!("0x{:02x}", value)
                     }
-                    Register::Register16(register) => {
+                    RegisterSingleOrPair::Pair(register) => {
                         let value = self.machine.registers().get_16(register);
                         format!("0x{:04x}", value.value())
                     }
