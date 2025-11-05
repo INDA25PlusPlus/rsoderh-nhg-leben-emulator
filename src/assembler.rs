@@ -1,6 +1,7 @@
 use std::io::Write;
 use crate::{assembler::reader::Reader, instruction::{Address, Instruction}};
 
+mod parse;
 mod reader;
 
 pub type AssemblySource<'a> = &'a [u8];
