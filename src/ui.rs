@@ -1,5 +1,11 @@
-use std::{io, sync::mpsc, time::Duration};
+use std::{
+    cell::{LazyCell, RefCell},
+    io,
+    sync::{LazyLock, mpsc},
+    time::Duration,
+};
 
+use anyhow::anyhow;
 use crossterm::{
     event::{self, DisableMouseCapture, KeyCode},
     execute,
@@ -9,7 +15,7 @@ use tui::{
     Frame, Terminal,
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Margin, Rect},
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, BorderType, Borders, Paragraph},
 };
@@ -21,6 +27,61 @@ use crate::{
 };
 
 mod memory_view;
+
+fn parse_hex(hex: &str) -> anyhow::Result<Color> {
+    let digits = hex
+        .strip_prefix("#")
+        .ok_or_else(|| anyhow!("Couldn't parse '{}': Missing '#'", hex))?;
+    if digits.len() != 6 {
+        return Err(anyhow!(
+            "Couldn't parse '{}': Incorrect length {}",
+            hex,
+            digits.len()
+        ));
+    }
+
+    let red: u8 = u8::from_str_radix(&digits[0..2], 16)
+        .map_err(|err| anyhow!("Couldn't parse '{}': Invalid color component: {}", hex, err))?;
+    let green: u8 = u8::from_str_radix(&digits[2..4], 16)
+        .map_err(|err| anyhow!("Couldn't parse '{}': Invalid color component: {}", hex, err))?;
+    let blue: u8 = u8::from_str_radix(&digits[4..6], 16)
+        .map_err(|err| anyhow!("Couldn't parse '{}': Invalid color component: {}", hex, err))?;
+
+    Ok(Color::Rgb(red, green, blue))
+}
+
+#[allow(unused)]
+static COLOR_TEXT: LazyLock<Color> = LazyLock::new(|| parse_hex("#cdd6f4").unwrap());
+#[allow(unused)]
+static COLOR_SUBTEXT_1: LazyLock<Color> = LazyLock::new(|| parse_hex("#bac2de").unwrap());
+#[allow(unused)]
+static COLOR_SUBTEXT_0: LazyLock<Color> = LazyLock::new(|| parse_hex("#a6adc8").unwrap());
+#[allow(unused)]
+static COLOR_OVERLAY_2: LazyLock<Color> = LazyLock::new(|| parse_hex("#6c7086").unwrap());
+#[allow(unused)]
+static COLOR_GREEN: LazyLock<Color> = LazyLock::new(|| parse_hex("#A7DFA2").unwrap());
+#[allow(unused)]
+static COLOR_PEACH: LazyLock<Color> = LazyLock::new(|| parse_hex("#fab387").unwrap());
+#[allow(unused)]
+static COLOR_RED: LazyLock<Color> = LazyLock::new(|| parse_hex("#f38ba8").unwrap());
+#[allow(unused)]
+static COLOR_LAVENDER: LazyLock<Color> = LazyLock::new(|| parse_hex("#b4befe").unwrap());
+
+static STYLE_BLOCK_BORDER: LazyLock<Style> =
+    LazyLock::new(|| Style::default().fg(*COLOR_OVERLAY_2));
+static STYLE_BLOCK_LABEL: LazyLock<Style> = LazyLock::new(|| {
+    Style::default()
+        .fg(*COLOR_OVERLAY_2)
+        .add_modifier(Modifier::BOLD)
+});
+static STYLE_ADDRESS: LazyLock<Style> = LazyLock::new(|| Style::default().fg(*COLOR_GREEN));
+static STYLE_LABEL: LazyLock<Style> = LazyLock::new(|| {
+    Style::default()
+        .fg(*COLOR_TEXT)
+        .add_modifier(Modifier::empty())
+});
+static STYLE_VALUE: LazyLock<Style> = LazyLock::new(|| Style::default().fg(*COLOR_PEACH));
+static STYLE_DATA: LazyLock<Style> = LazyLock::new(|| Style::default().fg(*COLOR_SUBTEXT_0));
 
 struct Ui {
     machine: Machine,
@@ -73,12 +134,10 @@ impl Ui {
 
     fn draw_memory(&self, f: &mut Frame<'_, CrosstermBackend<io::Stdout>>, area: Rect) {
         let block = Block::default()
-            .title(Span::styled(
-                "Memory",
-                Style::default().add_modifier(Modifier::BOLD),
-            ))
+            .title(Span::styled("Memory", *STYLE_BLOCK_LABEL))
             .borders(Borders::all())
-            .border_type(BorderType::Rounded);
+            .border_type(BorderType::Rounded)
+            .border_style(*STYLE_BLOCK_BORDER);
         let widget_area = block.inner(area).inner(&Margin {
             vertical: 0,
             horizontal: 1,
@@ -87,20 +146,19 @@ impl Ui {
 
         let memory_view = MemoryView::new(self.machine.memory().as_raw())
             .shown_address(Data16::from(0))
-            .label_style(Style::default())
-            .address_style(Style::default().add_modifier(Modifier::BOLD));
+            .label_style(*STYLE_LABEL)
+            .address_style(*STYLE_ADDRESS)
+            .data_style(*STYLE_DATA);
 
         f.render_widget(memory_view, widget_area);
     }
 
     fn draw_registers(&self, f: &mut Frame<'_, CrosstermBackend<io::Stdout>>, area: Rect) {
         let block = Block::default()
-            .title(Span::styled(
-                "Registers",
-                Style::default().add_modifier(Modifier::BOLD),
-            ))
+            .title(Span::styled("Registers", *STYLE_BLOCK_LABEL))
             .borders(Borders::all())
-            .border_type(BorderType::Rounded);
+            .border_type(BorderType::Rounded)
+            .border_style(*STYLE_BLOCK_BORDER);
         let list_area = block.inner(area).inner(&Margin {
             vertical: 0,
             horizontal: 1,
@@ -172,9 +230,9 @@ impl Ui {
                     }
                 };
                 let par = Paragraph::new(vec![Spans::from(vec![
-                    Span::raw(format!("{}", register)),
+                    Span::styled(format!("{}", register), *STYLE_LABEL),
                     Span::raw(": "),
-                    Span::styled(value_string, Style::default().add_modifier(Modifier::BOLD)),
+                    Span::styled(value_string, *STYLE_VALUE),
                 ])]);
 
                 f.render_widget(par, areas[row_index]);
@@ -184,14 +242,10 @@ impl Ui {
 
     fn draw_instructions(&self, f: &mut Frame<'_, CrosstermBackend<io::Stdout>>, area: Rect) {
         let block = Block::default()
-            .title(Span::styled(
-                "Instructions",
-                Style::default().add_modifier(Modifier::BOLD),
-            ))
-            // .(alignment)
+            .title(Span::styled("Instructions", *STYLE_BLOCK_LABEL))
             .borders(Borders::all())
-            // .borders(flag)
-            .border_type(BorderType::Rounded);
+            .border_type(BorderType::Rounded)
+            .border_style(*STYLE_BLOCK_BORDER);
         let block_area = block.inner(area).inner(&Margin {
             vertical: 0,
             horizontal: 1,
@@ -201,11 +255,9 @@ impl Ui {
         {
             let value = self.machine.pc();
             let pc = Paragraph::new(Spans::from(vec![
-                Span::raw("PC: "),
-                Span::styled(
-                    format!("0x{:04x}", value.value()),
-                    Style::default().add_modifier(Modifier::BOLD),
-                ),
+                Span::styled("PC", *STYLE_LABEL),
+                Span::raw(": "),
+                Span::styled(format!("0x{:04x}", value.value()), *STYLE_VALUE),
             ]));
             f.render_widget(pc, block_area);
         }
@@ -256,7 +308,9 @@ pub fn start(machine: Machine) -> anyhow::Result<()> {
         }
     });
 
-    quit_receiver.iter().next();
+    if quit_receiver.iter().next().is_none() {
+        return Err(anyhow!("UI channel broken"));
+    };
 
     // restore terminal
     let mut backend = CrosstermBackend::new(io::stdout());

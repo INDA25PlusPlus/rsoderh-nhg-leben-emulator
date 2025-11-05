@@ -35,7 +35,6 @@ impl<'a> MemoryView<'a> {
         self
     }
 
-    #[allow(unused)]
     pub fn data_style(mut self, style: Style) -> Self {
         self.data_style = style;
         self
