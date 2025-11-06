@@ -13,7 +13,7 @@ pub type AssemblySource<'a> = &'a [u8];
 
 pub fn parse_assembly(
     source: AssemblySource,
-) -> Result<Vec<InstructionOrData>, String> {
+) -> Result<(Vec<InstructionOrData>, u16), String> {
     let mut stream = parsable::ScopedStream::new(source);
     let outcome = parsable::WithEnd::<SourceFile>::parse(&mut stream);
     let source_file = match outcome.expect("parsing should give a result") {
@@ -66,5 +66,5 @@ pub fn parse_assembly(
             instructions.push(InstructionOrData::Instruction(instruction));
         }
     }
-    Ok(instructions)
+    Ok((instructions, origin_address))
 }
