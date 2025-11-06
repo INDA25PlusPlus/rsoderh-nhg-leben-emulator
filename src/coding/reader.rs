@@ -20,12 +20,16 @@ macro_rules! parse_alternatives {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Reader<'a> {
+    original: &'a [u8],
     buffer: &'a [u8],
 }
 
 impl<'a> Reader<'a> {
     pub fn new(slice: &[u8]) -> Reader {
-        Reader { buffer: slice }
+        Reader {
+            original: slice,
+            buffer: slice,
+        }
     }
 
     pub fn read(&mut self) -> Option<u8> {
@@ -33,7 +37,9 @@ impl<'a> Reader<'a> {
     }
 
     pub fn read_n<'b>(&'b mut self, n: usize) -> Option<&'a [u8]> {
-        if self.buffer.len() < n { return None; }
+        if self.buffer.len() < n {
+            return None;
+        }
         let (ret, rest) = self.buffer.split_at(n);
         self.buffer = rest;
         Some(ret)
@@ -43,7 +49,7 @@ impl<'a> Reader<'a> {
         if let Some(value) = self.peek() {
             if pred(value) {
                 self.skip();
-                return Some(value)
+                return Some(value);
             }
         }
         None
@@ -62,12 +68,16 @@ impl<'a> Reader<'a> {
     }
 
     pub fn peek_at(&self, index: usize) -> Option<u8> {
-        if self.buffer.len() <= index { return None; }
+        if self.buffer.len() <= index {
+            return None;
+        }
         Some(self.buffer[index])
     }
 
     pub fn peek_n<'b>(&'b self, n: usize) -> Option<&'a [u8]> {
-        if self.buffer.len() < n { return None; }
+        if self.buffer.len() < n {
+            return None;
+        }
         Some(&self.buffer[..n])
     }
 
@@ -83,7 +93,8 @@ impl<'a> Reader<'a> {
     }
 
     pub fn read_until_or_end<'b>(&'b mut self, value: u8) -> &'a [u8] {
-        self.read_until(value).unwrap_or_else(|| self.read_n(self.buffer.len()).unwrap())
+        self.read_until(value)
+            .unwrap_or_else(|| self.read_n(self.buffer.len()).unwrap())
     }
 
     pub fn at_end(&self) -> bool {
@@ -124,8 +135,9 @@ impl<'a> Reader<'a> {
 
     pub fn skip_ws_nl(&mut self) {
         fn is_ws_nl(value: Option<u8>) -> bool {
-            value.is_some_and(|value| 
-                value == b' ' || value == b'\t' || value == b'\n' || value == b'\r')
+            value.is_some_and(|value| {
+                value == b' ' || value == b'\t' || value == b'\n' || value == b'\r'
+            })
         }
         while is_ws_nl(self.peek()) {
             self.skip();
@@ -180,10 +192,10 @@ impl<'a> Reader<'a> {
     pub fn expect_label_name<'b>(&'b mut self) -> ReadResult<'a, Label<'a>> {
         let is_alpha = |v| (b'a'..=b'z').contains(&v) || (b'A'..=b'Z').contains(&v);
         let is_num = |v| (b'0'..=b'9').contains(&v);
-        
+
         let buf = self.buffer;
         self.expect_pred(|v| v == b'@' || v == b'?' || is_alpha(v))?;
-        
+
         let mut len = 1;
         while matches!(self.read_pred(|v| is_alpha(v) || is_num(v)), Some(..)) {
             len += 1;
@@ -193,38 +205,55 @@ impl<'a> Reader<'a> {
     }
 
     pub fn expect_register<'b>(&'b mut self) -> ReadResult<'a, Register> {
-        parse_alternatives!(self,
-            b"B", Register::B(()),
-            b"C", Register::C(()),
-            b"D", Register::D(()),
-            b"E", Register::E(()),
-            b"H", Register::H(()),
-            b"L", Register::L(()),
-            b"M", Register::M(()),
-            b"A", Register::A(()),
+        parse_alternatives!(
+            self,
+            b"B",
+            Register::B(()),
+            b"C",
+            Register::C(()),
+            b"D",
+            Register::D(()),
+            b"E",
+            Register::E(()),
+            b"H",
+            Register::H(()),
+            b"L",
+            Register::L(()),
+            b"M",
+            Register::M(()),
+            b"A",
+            Register::A(()),
         )
     }
 
     pub fn expect_register_pair<'b>(&'b mut self) -> ReadResult<'a, RegisterPair> {
-        parse_alternatives!(self,
-            b"BC", RegisterPair::Bc(()),
-            b"DE", RegisterPair::De(()),
-            b"HL", RegisterPair::Hl(()),
-            b"SP", RegisterPair::Sp(()),
+        parse_alternatives!(
+            self,
+            b"BC",
+            RegisterPair::Bc(()),
+            b"DE",
+            RegisterPair::De(()),
+            b"HL",
+            RegisterPair::Hl(()),
+            b"SP",
+            RegisterPair::Sp(()),
         )
     }
 
     pub fn expect_hex<'b>(&'b mut self) -> ReadResult<'a, u8> {
-        parse_alternatives!(self,
-            b"0", 0x0, b"1", 0x1, b"2", 0x2, b"3", 0x3,
-            b"4", 0x4, b"5", 0x5, b"6", 0x6, b"7", 0x7,
-            b"8", 0x8, b"9", 0x9, b"a", 0xa, b"b", 0xb,
-            b"c", 0xc, b"d", 0xd, b"e", 0xe, b"f", 0xf,
+        parse_alternatives!(
+            self, b"0", 0x0, b"1", 0x1, b"2", 0x2, b"3", 0x3, b"4", 0x4, b"5", 0x5, b"6", 0x6,
+            b"7", 0x7, b"8", 0x8, b"9", 0x9, b"a", 0xa, b"b", 0xb, b"c", 0xc, b"d", 0xd, b"e", 0xe,
+            b"f", 0xf,
         )
     }
 
     pub fn expect_hex_8<'b>(&'b mut self) -> ReadResult<'a, u8> {
         todo!()
         // self.expect(b'0')?;
+    }
+
+    pub fn read_amount_bytes(&self) -> usize {
+        self.original.len() - self.buffer.len()
     }
 }

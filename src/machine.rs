@@ -1,4 +1,7 @@
-use crate::instruction::{Address, Data8, Data16, Register, RegisterPair};
+use crate::{
+    coding::{self, reader::Reader},
+    instruction::{Address, Data8, Data16, Instruction, Register, RegisterPair},
+};
 
 static MEMORY_SIZE_BYTES: usize = 2 << 16;
 pub struct Memory([u8; MEMORY_SIZE_BYTES]);
@@ -8,13 +11,23 @@ impl Memory {
         Self([0; MEMORY_SIZE_BYTES])
     }
 
-    pub fn read_u8(&self, address: Address) -> Data8 {
+    pub fn read_8(&self, address: Address) -> Data8 {
         self.0[address.value() as usize]
     }
-    pub fn read_u16(&self, address: Address) -> Option<Data16> {
+    pub fn read_16(&self, address: Address) -> Option<Data16> {
         let low = self.0[address.value() as usize];
         let high = *self.0.get(address.value() as usize + 1)?;
         Some(Data16::new(low, high))
+    }
+
+    pub fn write_8(&mut self, address: Address, value: Data8) {
+        self.0[address.value() as usize] = value;
+    }
+    pub fn write_16(&mut self, address: Address, value: Data16) -> Option<()> {
+        self.0[address.value() as usize] = value.low;
+        *self.0.get_mut(address.value() as usize + 1)? = value.high;
+
+        Some(())
     }
 
     pub fn as_raw(&self) -> &[u8; MEMORY_SIZE_BYTES] {
@@ -71,10 +84,41 @@ impl RegisterMap {
             Register::M(..) => {
                 let address = self.get_16(RegisterPair::Hl(()));
 
-                return memory.read_u8(address);
+                return memory.read_8(address);
             }
             Register::A(..) => {
                 return self.a;
+            }
+        }
+    }
+
+    pub fn set_8(&mut self, register: Register, value: Data8, memory: &mut Memory) {
+        match register {
+            Register::B(..) => {
+                self.b = value;
+            }
+            Register::C(..) => {
+                self.c = value;
+            }
+            Register::D(..) => {
+                self.d = value;
+            }
+            Register::E(..) => {
+                self.e = value;
+            }
+            Register::H(..) => {
+                self.h = value;
+            }
+            Register::L(..) => {
+                self.l = value;
+            }
+            Register::M(..) => {
+                let address = self.get_16(RegisterPair::Hl(()));
+
+                memory.write_8(address, value);
+            }
+            Register::A(..) => {
+                self.a = value;
             }
         }
     }
@@ -87,9 +131,41 @@ impl RegisterMap {
             RegisterPair::Sp(..) => self.sp,
         }
     }
+    pub fn set_16(&mut self, register: RegisterPair, value: Data16) {
+        match register {
+            RegisterPair::Bc(..) => {
+                self.c = value.low;
+                self.b = value.high;
+            }
+            RegisterPair::De(..) => {
+                self.e = value.low;
+                self.d = value.high;
+            }
+            RegisterPair::Hl(..) => {
+                self.l = value.low;
+                self.h = value.high;
+            }
+            RegisterPair::Sp(..) => self.sp = value,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+pub enum MachineState {
+    Running,
+    Halted,
+    InvalidInstruction,
+}
+
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+pub enum ExecutionResult {
+    Running,
+    ControlTransfer,
+    Halt,
 }
 
 pub struct Machine {
+    state: MachineState,
     memory: Box<Memory>,
     registers: RegisterMap,
     pc: Data16,
@@ -98,10 +174,15 @@ pub struct Machine {
 impl Machine {
     pub fn new() -> Self {
         Self {
+            state: MachineState::Running,
             memory: Box::new(Memory::new()),
             registers: RegisterMap::new(),
             pc: Data16::ZERO,
         }
+    }
+
+    pub fn state(&self) -> MachineState {
+        self.state
     }
 
     pub fn registers(&self) -> &RegisterMap {
@@ -122,5 +203,108 @@ impl Machine {
 
     pub fn pc(&self) -> Data16 {
         self.pc
+    }
+
+    pub fn run_cycle(&mut self) {
+        match self.state {
+            MachineState::Halted => {}
+            MachineState::InvalidInstruction => {}
+            MachineState::Running => {
+                self.state = self.load_execute();
+            }
+        }
+    }
+
+    fn load_execute(&mut self) -> MachineState {
+        let mut stream = Reader::new(&self.memory().0[self.pc().value() as usize..]);
+
+        let Some(instruction) = coding::decode(&mut stream) else {
+            return MachineState::InvalidInstruction;
+        };
+        let instruction_len = stream.read_amount_bytes();
+
+        match self.execute(instruction) {
+            ExecutionResult::Running => {
+                self.pc = (self.pc.value() + instruction_len as u16).into();
+                MachineState::Running
+            }
+            ExecutionResult::ControlTransfer => MachineState::Running,
+            ExecutionResult::Halt => MachineState::Halted,
+        }
+    }
+
+    fn execute(&mut self, instruction: Instruction) -> ExecutionResult {
+        match instruction {
+            Instruction::Mov(source, destination) => {
+                self.registers.set_8(
+                    destination,
+                    self.registers.get_8(source, &self.memory),
+                    &mut self.memory,
+                );
+                ExecutionResult::Running
+            }
+            Instruction::Mvi(destination, data) => {
+                self.registers.set_8(destination, data, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Lxi(register_pair, data) => {
+                self.registers.set_16(register_pair, data);
+                ExecutionResult::Running
+            }
+            Instruction::Lda(_data) => unimplemented!(),
+            Instruction::Sta(_data) => unimplemented!(),
+            Instruction::Lhld(_data) => unimplemented!(),
+            Instruction::Shld(_data) => unimplemented!(),
+            Instruction::Ldax(_register_pair_indirect) => unimplemented!(),
+            Instruction::Stax(_register_pair_indirect) => unimplemented!(),
+            Instruction::Xchg => unimplemented!(),
+            Instruction::Add(_register) => unimplemented!(),
+            Instruction::Adi(_) => unimplemented!(),
+            Instruction::Adc(_register) => unimplemented!(),
+            Instruction::Aci(_) => unimplemented!(),
+            Instruction::Sub(_register) => unimplemented!(),
+            Instruction::Sui(_) => unimplemented!(),
+            Instruction::Sbb(_register) => unimplemented!(),
+            Instruction::Sbi(_) => unimplemented!(),
+            Instruction::Inr(_register) => unimplemented!(),
+            Instruction::Dcr(_register) => unimplemented!(),
+            Instruction::Inx(_register_pair) => unimplemented!(),
+            Instruction::Dcx(_register_pair) => unimplemented!(),
+            Instruction::Dad(_register_pair) => unimplemented!(),
+            Instruction::Daa => unimplemented!(),
+            Instruction::Ana(_register) => unimplemented!(),
+            Instruction::Ani(_) => unimplemented!(),
+            Instruction::Xra(_register) => unimplemented!(),
+            Instruction::Xri(_) => unimplemented!(),
+            Instruction::Ora(_register) => unimplemented!(),
+            Instruction::Ori(_) => unimplemented!(),
+            Instruction::Cmp(_register) => unimplemented!(),
+            Instruction::Cpi(_) => unimplemented!(),
+            Instruction::Rlc => unimplemented!(),
+            Instruction::Rrc => unimplemented!(),
+            Instruction::Ral => unimplemented!(),
+            Instruction::Rar => unimplemented!(),
+            Instruction::Cma => unimplemented!(),
+            Instruction::Cmc => unimplemented!(),
+            Instruction::Stc => unimplemented!(),
+            Instruction::Jmp(_data) => unimplemented!(),
+            Instruction::Jcc(_condition, _data) => unimplemented!(),
+            Instruction::Call(_data) => unimplemented!(),
+            Instruction::Ccc(_condition, _data) => unimplemented!(),
+            Instruction::Ret => unimplemented!(),
+            Instruction::Rcc(_condition) => unimplemented!(),
+            Instruction::Rst(_restart_number) => unimplemented!(),
+            Instruction::Pchl => unimplemented!(),
+            Instruction::Push(_register_pair_or_status) => unimplemented!(),
+            Instruction::Pop(_register_pair_or_status) => unimplemented!(),
+            Instruction::Xthl => unimplemented!(),
+            Instruction::Sphl => unimplemented!(),
+            Instruction::In(_) => unimplemented!(),
+            Instruction::Out(_) => unimplemented!(),
+            Instruction::Ei => unimplemented!(),
+            Instruction::Di => unimplemented!(),
+            Instruction::Hlt => ExecutionResult::Halt,
+            Instruction::Nop => ExecutionResult::Running,
+        }
     }
 }

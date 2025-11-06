@@ -30,6 +30,23 @@ impl Display for Register {
     }
 }
 
+impl TryFrom<u8> for Register {
+    type Error = ();
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0b111 => Ok(Self::A(())),
+            0b000 => Ok(Self::B(())),
+            0b001 => Ok(Self::C(())),
+            0b010 => Ok(Self::D(())),
+            0b011 => Ok(Self::E(())),
+            0b100 => Ok(Self::H(())),
+            0b101 => Ok(Self::L(())),
+            0b110 => Ok(Self::M(())),
+            _ => Err(()),
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Parsable)]
 pub enum RegisterPair {
@@ -50,11 +67,35 @@ impl Display for RegisterPair {
     }
 }
 
+impl TryFrom<u8> for RegisterPair {
+    type Error = ();
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0b00 => Ok(Self::Bc(())),
+            0b01 => Ok(Self::De(())),
+            0b10 => Ok(Self::Hl(())),
+            0b11 => Ok(Self::Sp(())),
+            _ => Err(()),
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum RegisterPairIndirect {
     Bc = 0b00,
     De = 0b01,
+}
+
+impl TryFrom<u8> for RegisterPairIndirect {
+    type Error = ();
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0b00 => Ok(Self::Bc),
+            0b01 => Ok(Self::De),
+            _ => Err(()),
+        }
+    }
 }
 
 #[repr(u8)]
@@ -66,12 +107,25 @@ pub enum RegisterPairOrStatus {
     StatusWord = 0b11,
 }
 
+impl TryFrom<u8> for RegisterPairOrStatus {
+    type Error = ();
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0b00 => Ok(Self::Bc),
+            0b01 => Ok(Self::De),
+            0b10 => Ok(Self::Hl),
+            0b11 => Ok(Self::StatusWord),
+            _ => Err(()),
+        }
+    }
+}
+
 pub type Data8 = u8;
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Data16 {
-    low: Data8,
-    high: Data8,
+    pub low: Data8,
+    pub high: Data8,
 }
 
 impl Data16 {
@@ -82,14 +136,14 @@ impl Data16 {
     }
 
     pub fn value(&self) -> u16 {
-        self.low as u16 + (self.high as u16) << 8
+        self.low as u16 + ((self.high as u16) << 8)
     }
 }
 
 impl From<u16> for Data16 {
     fn from(value: u16) -> Self {
         Self {
-            low: value as u8,
+            low: (value & 0b1111_1111) as u8,
             high: (value >> 8) as u8,
         }
     }
@@ -117,6 +171,23 @@ pub enum Condition {
     ParityOdd = 0b100,
 }
 
+impl TryFrom<u8> for Condition {
+    type Error = ();
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0b011 => Ok(Self::Carry),
+            0b10 => Ok(Self::NoCarry),
+            0b001 => Ok(Self::Zero),
+            0b000 => Ok(Self::NoZero),
+            0b110 => Ok(Self::Positive),
+            0b111 => Ok(Self::Minus),
+            0b101 => Ok(Self::ParityEven),
+            0b100 => Ok(Self::ParityOdd),
+            _ => Err(()),
+        }
+    }
+}
+
 pub type Port = Data8;
 
 #[repr(u8)]
@@ -130,6 +201,23 @@ pub enum RestartNumber {
     R5 = 0b101,
     R6 = 0b110,
     R7 = 0b111,
+}
+
+impl TryFrom<u8> for RestartNumber {
+    type Error = ();
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0b000 => Ok(Self::R0),
+            0b001 => Ok(Self::R1),
+            0b010 => Ok(Self::R2),
+            0b011 => Ok(Self::R3),
+            0b100 => Ok(Self::R4),
+            0b101 => Ok(Self::R5),
+            0b110 => Ok(Self::R6),
+            0b111 => Ok(Self::R7),
+            _ => Err(()),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
