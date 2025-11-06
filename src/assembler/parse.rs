@@ -4,6 +4,8 @@ mod token;
 
 use parsable::{CharLiteral, Ignore, Parsable, ZeroPlus};
 
+use crate::{assembler::reader::{ReadError, ReadResult, Reader}, instruction::{Address, Instruction}};
+
 #[derive(Clone, Debug, PartialEq, Eq, Parsable)]
 pub struct SourceFile {
 

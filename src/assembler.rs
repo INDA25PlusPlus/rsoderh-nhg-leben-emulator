@@ -1,11 +1,11 @@
 use std::io::Write;
 use parsable::Parsable;
 
-use crate::assembler::parse::SourceFile;
-use crate::instruction::{Address, Instruction};
+use crate::{assembler::{parse::SourceFile, reader::Reader}, instruction::{Address, Instruction}};
 
 mod labels;
 mod parse;
+mod reader;
 
 pub type AssemblySource<'a> = &'a [u8];
 
