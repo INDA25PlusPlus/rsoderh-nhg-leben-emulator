@@ -1,6 +1,6 @@
 use parsable::{CharLiteral, CharRange, OnePlus, Parsable, Span};
 
-use crate::instruction::Data16;
+use crate::instruction::{Data16, RestartNumber};
 
 #[derive(Clone, Debug, PartialEq, Eq, Parsable)]
 pub struct LiteralNumber {
@@ -59,6 +59,25 @@ impl TryFrom<LiteralNumber> for Data16 {
 
     fn try_from(value: LiteralNumber) -> Result<Self, Self::Error> {
         u16::try_from(value).map(|v| v.into())
+    }
+}
+
+impl TryFrom<LiteralNumber> for RestartNumber {
+    type Error = ();
+    
+    fn try_from(value: LiteralNumber) -> Result<Self, Self::Error> {
+        let value: u8 = value.try_into()?;
+        match value {
+            0b000 => Ok(RestartNumber::R0),
+            0b001 => Ok(RestartNumber::R1),
+            0b010 => Ok(RestartNumber::R2),
+            0b011 => Ok(RestartNumber::R3),
+            0b100 => Ok(RestartNumber::R4),
+            0b101 => Ok(RestartNumber::R5),
+            0b110 => Ok(RestartNumber::R6),
+            0b111 => Ok(RestartNumber::R7),
+            _ => Err(()),
+        }
     }
 }
 
