@@ -1,11 +1,10 @@
 use std::io::Write;
 use parsable::Parsable;
 
-use crate::{assembler::{parse::SourceFile, reader::Reader}, instruction::{Address, Instruction}};
+use crate::{assembler::{parse::SourceFile}, instruction::{Address, Instruction}};
 
 mod labels;
 mod parse;
-mod reader;
 
 pub type AssemblySource<'a> = &'a [u8];
 
@@ -18,10 +17,3 @@ pub fn parse_instructions(source: AssemblySource, program_address: Address) -> O
     }
 }
 
-pub fn encode(buffer: impl Write, instructions: Vec<Instruction>) -> std::io::Result<()> {
-    todo!()
-}
-
-pub fn decode(buffer: &[u8]) -> Option<Vec<Instruction>> {
-    todo!()
-}
