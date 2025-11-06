@@ -321,12 +321,14 @@ impl Machine {
             Instruction::Adc(register) => {
                 let a = self.registers.get_8(Register::A(()), &self.memory);
                 let value = self.registers.get_8(register, &self.memory);
-                let mut result = a.wrapping_add(value);
+                let (mut result, overflow_1) = a.overflowing_add(value);
+                let mut overflow_2 = false;
                 if self.conditions.get(ConditionRegister::Carry) {
-                    self.conditions.set(ConditionRegister::Carry, false);
-                    result += 1;
+                    (result, overflow_2) = result.overflowing_add(1);
                 }
-                if result <= a.max(value) {
+                if !overflow_1 && !overflow_2 {
+                    self.conditions.set(ConditionRegister::Carry, false);
+                } else {
                     self.conditions.set(ConditionRegister::Carry, true);
                 }
                 self.registers
@@ -335,12 +337,12 @@ impl Machine {
             }
             Instruction::Aci(data) => {
                 let a = self.registers.get_8(Register::A(()), &self.memory);
-                let mut result = a.wrapping_add(data);
+                let (mut result, mut overflow) = a.overflowing_add(data);
                 if self.conditions.get(ConditionRegister::Carry) {
                     self.conditions.set(ConditionRegister::Carry, false);
-                    result += 1;
+                    (result, overflow) = result.overflowing_add(1);
                 }
-                if result <= a.max(data) {
+                if overflow {
                     self.conditions.set(ConditionRegister::Carry, true);
                 }
                 self.registers
@@ -401,17 +403,19 @@ mod tests {
     fn test_add_register() {
         let mut machine = Machine::new();
 
-        machine
-            .registers
-            .set_8(Register::A(()), 0x23, &mut machine.memory);
-        machine
-            .registers
-            .set_8(Register::B(()), 0x42, &mut machine.memory);
+        machine.conditions.set(ConditionRegister::Carry, true);
 
-        let result = machine.execute(Instruction::Add(Register::B(())));
+        machine
+            .registers
+            .set_8(Register::A(()), 0x35, &mut machine.memory);
+        machine
+            .registers
+            .set_8(Register::B(()), 0x35, &mut machine.memory);
+
+        let result = machine.execute(Instruction::Adc(Register::B(())));
 
         assert_eq!(result, ExecutionResult::Running);
 
-        println!("{:?}", machine.register_8(Register::A(())));
+        assert_eq!(0x6B, machine.register_8(Register::A(())))
     }
 }
