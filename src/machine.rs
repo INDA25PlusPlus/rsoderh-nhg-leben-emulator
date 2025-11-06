@@ -1,6 +1,6 @@
 use crate::{
     coding::{self, reader::Reader},
-    instruction::{Address, Condition, Data8, Data16, Instruction, Register, RegisterPair},
+    instruction::{Address, Data8, Data16, Instruction, Register, RegisterPair},
 };
 
 static MEMORY_SIZE_BYTES: usize = 2 << 16;
@@ -35,33 +35,39 @@ impl Memory {
     }
 }
 
-pub struct ConditionFlags {
-    flags: [bool; 8],
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+pub enum ConditionRegister {
+    Carry,
+    AuxiliaryCarry,
+    Sign,
+    Zero,
+    Parity
 }
 
-impl ConditionFlags {
+pub struct ConditionRegisters {
+    flags: [bool; 5],
+}
+
+impl ConditionRegisters {
     pub fn new() -> Self {
-        Self { flags: [false; 8] }
+        Self { flags: [false; 5] }
     }
     
-    fn condition_index(condition: Condition) -> usize {
+    fn condition_index(condition: ConditionRegister) -> usize {
         match condition {
-            Condition::Carry => 0,
-            Condition::NoCarry => 1,
-            Condition::Zero => 2,
-            Condition::NoZero => 3,
-            Condition::Positive => 4,
-            Condition::Minus => 5,
-            Condition::ParityEven => 6,
-            Condition::ParityOdd => 7,
+            ConditionRegister::Carry => 0,
+            ConditionRegister::AuxiliaryCarry => 0,
+            ConditionRegister::Zero => 2,
+            ConditionRegister::Sign => 3,
+            ConditionRegister::Parity => 4,
         }
     }
     
-    pub fn get(&self, condition: Condition) -> bool {
+    pub fn get(&self, condition: ConditionRegister) -> bool {
         self.flags[Self::condition_index(condition)]
     }
     
-    pub fn set(&mut self, condition: Condition, value: bool) {
+    pub fn set(&mut self, condition: ConditionRegister, value: bool) {
         self.flags[Self::condition_index(condition)] = value;
     }
 }
@@ -199,7 +205,7 @@ pub struct Machine {
     state: MachineState,
     memory: Box<Memory>,
     registers: RegisterMap,
-    conditions: ConditionFlags,
+    conditions: ConditionRegisters,
     pc: Data16,
 }
 
@@ -209,7 +215,7 @@ impl Machine {
             state: MachineState::Running,
             memory: Box::new(Memory::new()),
             registers: RegisterMap::new(),
-            conditions: ConditionFlags::new(),
+            conditions: ConditionRegisters::new(),
             pc: Data16::ZERO,
         }
     }
@@ -316,7 +322,7 @@ impl Machine {
             }
             Instruction::Aci(data) => {
                 let a = self.registers.get_8(Register::A(()), &self.memory);
-                let mut result = a.wrapping_add(data);
+                let result = a.wrapping_add(data);
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
                 ExecutionResult::Running
