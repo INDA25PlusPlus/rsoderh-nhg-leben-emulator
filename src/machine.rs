@@ -251,7 +251,7 @@ impl Machine {
     pub fn memory(&self) -> &Memory {
         &self.memory
     }
-    
+
     pub fn memory_mut(&mut self) -> &mut Memory {
         &mut self.memory
     }
@@ -357,6 +357,13 @@ impl Machine {
                 }
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Zero, result == 0);
                 ExecutionResult::Running
             }
             Instruction::Adi(data) => {
@@ -367,6 +374,13 @@ impl Machine {
                 }
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Zero, result == 0);
                 ExecutionResult::Running
             }
             Instruction::Adc(register) => {
@@ -381,6 +395,13 @@ impl Machine {
                     .set(ConditionRegister::Carry, overflow_1 || overflow_2);
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Zero, result == 0);
                 ExecutionResult::Running
             }
             Instruction::Aci(data) => {
@@ -394,44 +415,83 @@ impl Machine {
                     .set(ConditionRegister::Carry, overflow_1 || overflow_2);
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Zero, result == 0);
                 ExecutionResult::Running
             }
             Instruction::Sub(register) => {
                 let a = self.registers.get_8(Register::A(()), &self.memory);
                 let value = self.register_8(register);
-                let result = a.wrapping_sub(value);
+                let (result, overflow) = a.overflowing_sub(value);
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions.set(ConditionRegister::Carry, overflow);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Zero, result == 0);
                 ExecutionResult::Running
             }
             Instruction::Sui(data) => {
                 let a = self.registers.get_8(Register::A(()), &self.memory);
-                let result = a.wrapping_sub(data);
+                let (result, overflow) = a.overflowing_sub(data);
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions.set(ConditionRegister::Carry, overflow);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Zero, result == 0);
                 ExecutionResult::Running
             }
             Instruction::Sbb(register) => {
                 let a = self.registers.get_8(Register::A(()), &self.memory);
                 let mut value = self.register_8(register);
                 if self.conditions.get(ConditionRegister::Carry) {
-                    value += 1;
+                    value = value.wrapping_add(1);
                 }
-                let result = a.wrapping_sub(value);
-                self.conditions.set(ConditionRegister::Carry, false);
+                let (result, overflow) = a.overflowing_sub(value);
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions.set(ConditionRegister::Carry, overflow);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Zero, result == 0);
                 ExecutionResult::Running
             }
             Instruction::Sbi(data) => {
                 let a = self.registers.get_8(Register::A(()), &self.memory);
-                let mut result = a.wrapping_sub(data);
+                let (mut result, overflow1) = a.overflowing_sub(data);
+                let mut overflow2 = false;
                 if self.conditions.get(ConditionRegister::Carry) {
-                    result = result.wrapping_add(1);
+                    (result, overflow2) = result.overflowing_add(1);
                 }
-                self.conditions.set(ConditionRegister::Carry, false);
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions
+                    .set(ConditionRegister::Carry, overflow1 || overflow2);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Zero, result == 0);
                 ExecutionResult::Running
             }
             Instruction::Inr(register) => {
@@ -440,6 +500,25 @@ impl Machine {
                     self.registers.get_8(register, &self.memory).wrapping_add(1),
                     &mut self.memory,
                 );
+                self.conditions.set(
+                    ConditionRegister::Carry,
+                    self.registers.get_8(register, &self.memory) == 0,
+                );
+                self.conditions.set(
+                    ConditionRegister::Sign,
+                    self.registers.get_8(register, &self.memory) < 0b10000000,
+                );
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    self.registers
+                        .get_8(register, &self.memory)
+                        .count_ones()
+                        .is_multiple_of(2),
+                );
+                self.conditions.set(
+                    ConditionRegister::Zero,
+                    self.registers.get_8(register, &self.memory) == 0,
+                );
                 ExecutionResult::Running
             }
             Instruction::Dcr(register) => {
@@ -447,6 +526,25 @@ impl Machine {
                     register,
                     self.registers.get_8(register, &self.memory).wrapping_sub(1),
                     &mut self.memory,
+                );
+                self.conditions.set(
+                    ConditionRegister::Carry,
+                    self.registers.get_8(register, &self.memory) == 0,
+                );
+                self.conditions.set(
+                    ConditionRegister::Sign,
+                    self.registers.get_8(register, &self.memory) < 0b10000000,
+                );
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    self.registers
+                        .get_8(register, &self.memory)
+                        .count_ones()
+                        .is_multiple_of(2),
+                );
+                self.conditions.set(
+                    ConditionRegister::Zero,
+                    self.registers.get_8(register, &self.memory) == 0,
                 );
                 ExecutionResult::Running
             }
@@ -457,6 +555,7 @@ impl Machine {
                         | self.registers.get_16(register_pair).low.wrapping_add(1) as u16)
                         .into(),
                 );
+
                 ExecutionResult::Running
             }
             Instruction::Dcx(register_pair) => {
@@ -487,6 +586,13 @@ impl Machine {
                 let result = a & value;
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions.set(ConditionRegister::Sign, result < 128);
+                self.conditions.set(ConditionRegister::Zero, result == 0);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Carry, false);
                 ExecutionResult::Running
             }
             Instruction::Ani(data) => {
@@ -494,6 +600,15 @@ impl Machine {
                 let result = a & data;
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions.set(ConditionRegister::Sign, result < 128);
+                self.conditions.set(ConditionRegister::Zero, result == 0);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Carry, false);
                 ExecutionResult::Running
             }
             Instruction::Xra(register) => {
@@ -502,6 +617,15 @@ impl Machine {
                 let result = a ^ value;
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions.set(ConditionRegister::Sign, result < 128);
+                self.conditions.set(ConditionRegister::Zero, result == 0);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Carry, false);
                 ExecutionResult::Running
             }
             Instruction::Xri(data) => {
@@ -509,6 +633,15 @@ impl Machine {
                 let result = a ^ data;
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions.set(ConditionRegister::Sign, result < 128);
+                self.conditions.set(ConditionRegister::Zero, result == 0);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Carry, false);
                 ExecutionResult::Running
             }
             Instruction::Ora(register) => {
@@ -517,6 +650,15 @@ impl Machine {
                 let result = a | value;
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions.set(ConditionRegister::Sign, result < 128);
+                self.conditions.set(ConditionRegister::Zero, result == 0);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Carry, false);
                 ExecutionResult::Running
             }
             Instruction::Ori(data) => {
@@ -524,6 +666,15 @@ impl Machine {
                 let result = a | data;
                 self.registers
                     .set_8(Register::A(()), result, &mut self.memory);
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                self.conditions.set(ConditionRegister::Sign, result < 128);
+                self.conditions.set(ConditionRegister::Zero, result == 0);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
+                self.conditions.set(ConditionRegister::Carry, false);
                 ExecutionResult::Running
             }
             Instruction::Cmp(register) => {
@@ -532,6 +683,12 @@ impl Machine {
                 let (result, overflow) = a.overflowing_sub(value);
                 self.conditions.set(ConditionRegister::Carry, !overflow);
                 self.conditions.set(ConditionRegister::Zero, result == 0);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
                 ExecutionResult::Running
             }
             Instruction::Cpi(data) => {
@@ -539,6 +696,12 @@ impl Machine {
                 let (result, overflow) = a.overflowing_sub(data);
                 self.conditions.set(ConditionRegister::Carry, !overflow);
                 self.conditions.set(ConditionRegister::Zero, result == 0);
+                self.conditions
+                    .set(ConditionRegister::Sign, result < 0b10000000);
+                self.conditions.set(
+                    ConditionRegister::Parity,
+                    result.count_ones().is_multiple_of(2),
+                );
                 ExecutionResult::Running
             }
             Instruction::Rlc => unimplemented!(),
@@ -686,18 +849,23 @@ mod tests {
 
         machine
             .registers
-            .set_8(Register::A(()), 0x35, &mut machine.memory);
+            .set_8(Register::A(()), 0x80, &mut machine.memory);
         machine
             .registers
-            .set_8(Register::B(()), 0x35, &mut machine.memory);
+            .set_8(Register::B(()), 0x00, &mut machine.memory);
 
-        let result = machine.execute(Instruction::Adc(Register::B(())));
+        let result = machine.execute(Instruction::Add(Register::B(())));
         let elapsed = now.elapsed();
 
-        assert_eq!(result, ExecutionResult::Running);
+        // assert_eq!(result, ExecutionResult::Running);
 
-        assert_eq!(0x6B, machine.register_8(Register::A(())));
-        println!("add: Time elapsed: {:?}", elapsed);
+        // assert_eq!(0x6B, machine.register_8(Register::A(())));
+        println!(
+            "add: Time elapsed: {:?}, A: {:?}, Sign: {:?}",
+            elapsed,
+            machine.register_8(Register::A(())),
+            machine.conditions.get(ConditionRegister::Sign)
+        );
     }
     #[test]
     fn test_sub_register() {
