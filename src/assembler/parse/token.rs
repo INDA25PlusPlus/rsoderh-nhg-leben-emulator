@@ -1,5 +1,7 @@
 parsable::literals! {
     pub struct Comma = b",";
+    pub struct Colon = b":";
+    pub struct Semicolon = b";";
 
     pub struct Origin = b"ORG";
     pub struct EndOfAssembly = b"END";
