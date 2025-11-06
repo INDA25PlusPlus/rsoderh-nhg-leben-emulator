@@ -1,14 +1,37 @@
+use std::collections::HashMap;
+
 use parsable::{CharLiteral, CharRange, Parsable, Span, ZeroPlus};
 
 use crate::instruction::Address;
 
 pub struct LabelLookup {
-    
+    map: HashMap<Vec<u8>, Address>,
 }
 
 impl LabelLookup {
-    pub fn lookup(&self, label: Label) -> Option<Address> {
-        todo!()
+    pub fn new() -> LabelLookup {
+        LabelLookup {
+            map: HashMap::new(),
+        }
+    }
+
+    fn to_label_ident(label: &Label) -> Vec<u8> {
+        label.span[..label.span.len().max(5)].to_owned()
+    }
+
+    pub fn insert(&mut self, label: Label, address: Address) -> Result<(), ()> {
+        let ident = LabelLookup::to_label_ident(&label);
+        if self.map.contains_key(&ident) {
+            Err(())
+        } else {
+            self.map.insert(ident, address);
+            Ok(())
+        }
+    }
+
+    pub fn get(&self, label: Label) -> Option<Address> {
+        let ident = LabelLookup::to_label_ident(&label);
+        self.map.get(&ident).copied()
     }
 }
 
