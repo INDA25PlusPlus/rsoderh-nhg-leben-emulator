@@ -1,6 +1,6 @@
 use crate::{
     coding::{self, reader::Reader},
-    instruction::{Address, Data8, Data16, Instruction, Register, RegisterPair},
+    instruction::{Address, Condition, Data8, Data16, Instruction, Register, RegisterPair},
 };
 
 static MEMORY_SIZE_BYTES: usize = 2 << 16;
@@ -32,6 +32,37 @@ impl Memory {
 
     pub fn as_raw(&self) -> &[u8; MEMORY_SIZE_BYTES] {
         &self.0
+    }
+}
+
+pub struct ConditionFlags {
+    flags: [bool; 8],
+}
+
+impl ConditionFlags {
+    pub fn new() -> Self {
+        Self { flags: [false; 8] }
+    }
+    
+    fn condition_index(condition: Condition) -> usize {
+        match condition {
+            Condition::Carry => 0,
+            Condition::NoCarry => 1,
+            Condition::Zero => 2,
+            Condition::NoZero => 3,
+            Condition::Positive => 4,
+            Condition::Minus => 5,
+            Condition::ParityEven => 6,
+            Condition::ParityOdd => 7,
+        }
+    }
+    
+    pub fn get(&self, condition: Condition) -> bool {
+        self.flags[Self::condition_index(condition)]
+    }
+    
+    pub fn set(&mut self, condition: Condition, value: bool) {
+        self.flags[Self::condition_index(condition)] = value;
     }
 }
 
@@ -168,6 +199,7 @@ pub struct Machine {
     state: MachineState,
     memory: Box<Memory>,
     registers: RegisterMap,
+    conditions: ConditionFlags,
     pc: Data16,
 }
 
@@ -177,6 +209,7 @@ impl Machine {
             state: MachineState::Running,
             memory: Box::new(Memory::new()),
             registers: RegisterMap::new(),
+            conditions: ConditionFlags::new(),
             pc: Data16::ZERO,
         }
     }
