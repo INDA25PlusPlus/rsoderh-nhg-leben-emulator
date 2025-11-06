@@ -1,5 +1,8 @@
 use std::{
-    fmt::Display, io, sync::{LazyLock, mpsc}, time::Duration
+    fmt::Display,
+    io,
+    sync::{LazyLock, mpsc},
+    time::Duration,
 };
 
 use anyhow::anyhow;
@@ -19,7 +22,7 @@ use tui::{
 
 use crate::{
     instruction::{Data16, Register, RegisterPair},
-    machine::Machine,
+    machine::{Machine, MachineState},
     ui::memory_view::MemoryView,
 };
 
@@ -95,9 +98,16 @@ static STYLE_LABEL: LazyLock<Style> = LazyLock::new(|| {
 static STYLE_VALUE: LazyLock<Style> = LazyLock::new(|| Style::default().fg(*COLOR_PEACH));
 static STYLE_DATA: LazyLock<Style> = LazyLock::new(|| Style::default().fg(*COLOR_SUBTEXT_0));
 
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+enum UiState {
+    Running,
+    Paused,
+}
+
 struct Ui {
     machine: Machine,
     quit_sender: mpsc::Sender<()>,
+    state: UiState,
 }
 
 impl Ui {
@@ -105,6 +115,7 @@ impl Ui {
         Self {
             machine,
             quit_sender,
+            state: UiState::Paused,
         }
     }
 
@@ -112,6 +123,12 @@ impl Ui {
         &mut self,
         terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     ) -> anyhow::Result<()> {
+        match self.state {
+            UiState::Running => {
+                self.machine.run_cycle();
+            }
+            UiState::Paused => {}
+        }
         self.draw(terminal)
     }
 
@@ -283,6 +300,20 @@ impl Ui {
         match event.code {
             KeyCode::Char('q') => {
                 self.quit_sender.send(())?;
+            }
+            KeyCode::Char(' ') => match self.state {
+                UiState::Paused => {
+                    self.machine.run_cycle();
+                }
+                _ => {}
+            },
+            KeyCode::Char('p') => {
+                if self.machine.state() == MachineState::Running {
+                    self.state = match self.state {
+                        UiState::Paused => UiState::Running,
+                        UiState::Running => UiState::Paused,
+                    }
+                }
             }
             _ => {}
         }
