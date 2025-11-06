@@ -144,11 +144,16 @@ impl Ui {
                 .max(REGISTERS_HEIGHT);
 
             let mut memory_area = f.size();
-            memory_area.height -= registers_instructions_area_height;
+            memory_area.height -= registers_instructions_area_height + 1;
 
             let mut registers_instructions_area = f.size();
             registers_instructions_area.height = registers_instructions_area_height;
             registers_instructions_area.y = memory_area.bottom();
+            
+            
+            let mut keys_area = f.size();
+            keys_area.height = 1;
+            keys_area.y = registers_instructions_area.bottom();
 
             let [registers_area, instructions_area]: [Rect; 2] = Layout::default()
                 .direction(Direction::Horizontal)
@@ -161,6 +166,8 @@ impl Ui {
 
             self.draw_registers(f, registers_area);
             self.draw_instructions(f, instructions_area);
+            
+            self.draw_keys(f, keys_area);
         })?;
         Ok(())
     }
@@ -300,6 +307,18 @@ impl Ui {
         let mut instructions_area = block_area;
         instructions_area.y -= 1;
         instructions_area.height -= 1;
+    }
+    
+    fn draw_keys(&self, f: &mut Frame<'_, CrosstermBackend<io::Stdout>>, area: Rect) {
+        let par = Paragraph::new(Spans::from(vec![
+            Span::styled(" pause: ", *STYLE_BLOCK_BORDER),
+            Span::styled("P", *STYLE_BLOCK_LABEL),
+            Span::styled("  step instruction: ", *STYLE_BLOCK_BORDER),
+            Span::styled("Space", *STYLE_BLOCK_LABEL),
+            Span::styled("  quit: ", *STYLE_BLOCK_BORDER),
+            Span::styled("Q", *STYLE_BLOCK_LABEL),
+        ]));
+        f.render_widget(par, area);
     }
 
     fn input(&mut self, event: event::KeyEvent) -> anyhow::Result<()> {
