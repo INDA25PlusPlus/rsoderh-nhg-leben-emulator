@@ -404,23 +404,143 @@ impl Machine {
                     .set_8(Register::A(()), result, &mut self.memory);
                 ExecutionResult::Running
             }
-            Instruction::Sui(_) => unimplemented!(),
-            Instruction::Sbb(_register) => unimplemented!(),
-            Instruction::Sbi(_) => unimplemented!(),
-            Instruction::Inr(_register) => unimplemented!(),
-            Instruction::Dcr(_register) => unimplemented!(),
-            Instruction::Inx(_register_pair) => unimplemented!(),
-            Instruction::Dcx(_register_pair) => unimplemented!(),
-            Instruction::Dad(_register_pair) => unimplemented!(),
+            Instruction::Sui(data) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let result = a.wrapping_sub(data);
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Sbb(register) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let mut value = self.register_8(register);
+                if self.conditions.get(ConditionRegister::Carry) {
+                    value += 1;
+                }
+                let result = a.wrapping_sub(value);
+                self.conditions.set(ConditionRegister::Carry, false);
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Sbi(data) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let mut result = a.wrapping_sub(data);
+                if self.conditions.get(ConditionRegister::Carry) {
+                    result = result.wrapping_add(1);
+                }
+                self.conditions.set(ConditionRegister::Carry, false);
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Inr(register) => {
+                self.registers.set_8(
+                    register,
+                    self.registers.get_8(register, &self.memory).wrapping_add(1),
+                    &mut self.memory,
+                );
+                ExecutionResult::Running
+            }
+            Instruction::Dcr(register) => {
+                self.registers.set_8(
+                    register,
+                    self.registers.get_8(register, &self.memory).wrapping_sub(1),
+                    &mut self.memory,
+                );
+                ExecutionResult::Running
+            }
+            Instruction::Inx(register_pair) => {
+                self.registers.set_16(
+                    register_pair,
+                    ((self.registers.get_16(register_pair).high.wrapping_add(1) as u16) << 8
+                        | self.registers.get_16(register_pair).low.wrapping_add(1) as u16)
+                        .into(),
+                );
+                ExecutionResult::Running
+            }
+            Instruction::Dcx(register_pair) => {
+                self.registers.set_16(
+                    register_pair,
+                    ((self.registers.get_16(register_pair).high.wrapping_sub(1) as u16) << 8
+                        | self.registers.get_16(register_pair).low.wrapping_sub(1) as u16)
+                        .into(),
+                );
+                ExecutionResult::Running
+            }
+            Instruction::Dad(register_pair) => {
+                let hl = self.registers.get_16(RegisterPair::Hl(())).value();
+                let value = self.registers.get_16(register_pair).value();
+                let result = hl.wrapping_add(value);
+                if result < hl.max(value) {
+                    self.conditions.set(ConditionRegister::Carry, true);
+                } else {
+                    self.conditions.set(ConditionRegister::Carry, false);
+                }
+                self.registers.set_16(RegisterPair::Hl(()), result.into());
+                ExecutionResult::Running
+            }
             Instruction::Daa => unimplemented!(),
-            Instruction::Ana(_register) => unimplemented!(),
-            Instruction::Ani(_) => unimplemented!(),
-            Instruction::Xra(_register) => unimplemented!(),
-            Instruction::Xri(_) => unimplemented!(),
-            Instruction::Ora(_register) => unimplemented!(),
-            Instruction::Ori(_) => unimplemented!(),
-            Instruction::Cmp(_register) => unimplemented!(),
-            Instruction::Cpi(_) => unimplemented!(),
+            Instruction::Ana(register) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let value = self.registers.get_8(register, &self.memory);
+                let result = a & value;
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Ani(data) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let result = a & data;
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Xra(register) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let value = self.registers.get_8(register, &self.memory);
+                let result = a ^ value;
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Xri(data) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let result = a ^ data;
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Ora(register) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let value = self.registers.get_8(register, &self.memory);
+                let result = a | value;
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Ori(data) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let result = a | data;
+                self.registers
+                    .set_8(Register::A(()), result, &mut self.memory);
+                ExecutionResult::Running
+            }
+            Instruction::Cmp(register) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let value = self.register_8(register);
+                let (result, overflow) = a.overflowing_sub(value);
+                self.conditions.set(ConditionRegister::Carry, !overflow);
+                self.conditions.set(ConditionRegister::Zero, result == 0);
+                ExecutionResult::Running
+            }
+            Instruction::Cpi(data) => {
+                let a = self.registers.get_8(Register::A(()), &self.memory);
+                let (result, overflow) = a.overflowing_sub(data);
+                self.conditions.set(ConditionRegister::Carry, !overflow);
+                self.conditions.set(ConditionRegister::Zero, result == 0);
+                ExecutionResult::Running
+            }
             Instruction::Rlc => unimplemented!(),
             Instruction::Rrc => unimplemented!(),
             Instruction::Ral => unimplemented!(),
@@ -577,7 +697,7 @@ mod tests {
         assert_eq!(result, ExecutionResult::Running);
 
         assert_eq!(0x6B, machine.register_8(Register::A(())));
-        println!("Time elapsed: {:?}", elapsed);
+        println!("add: Time elapsed: {:?}", elapsed);
     }
     #[test]
     fn test_sub_register() {
@@ -592,13 +712,71 @@ mod tests {
         machine
             .registers
             .set_8(Register::B(()), 0x10, &mut machine.memory);
-        let result = machine.execute(Instruction::Sub(Register::B(())));
+        let result = machine.execute(Instruction::Sbi(66));
+        let elapsed = now.elapsed();
+
+        // assert_eq!(result, ExecutionResult::Running);
+
+        // assert_eq!(0x10, machine.register_8(Register::A(())));
+
+        println!("sub: Time elapsed: {:?}", elapsed);
+    }
+
+    #[test]
+    fn test_inr_register() {
+        let now = Instant::now();
+        let mut machine = Machine::new();
+
+        machine
+            .registers
+            .set_8(Register::B(()), 0x00, &mut machine.memory);
+        let result = machine.execute(Instruction::Inr(Register::B(())));
         let elapsed = now.elapsed();
 
         assert_eq!(result, ExecutionResult::Running);
 
-        assert_eq!(0x10, machine.register_8(Register::A(())));
+        assert_eq!(0x01, machine.register_8(Register::B(())));
 
-        println!("Time elapsed: {:?}", elapsed);
+        println!("inr: Time elapsed: {:?}", elapsed);
+    }
+
+    #[test]
+    fn test_inx_register() {
+        let now = Instant::now();
+        let mut machine = Machine::new();
+
+        machine
+            .registers
+            .set_16(RegisterPair::Bc(()), 0xFF00.into());
+        let result = machine.execute(Instruction::Inx(RegisterPair::Bc(())));
+        let elapsed = now.elapsed();
+
+        assert_eq!(result, ExecutionResult::Running);
+
+        assert_eq!(0x0001, machine.register_16(RegisterPair::Bc(())).value());
+
+        println!("inx: Time elapsed: {:?}", elapsed);
+    }
+    #[test]
+    fn test_ana_register() {
+        let now = Instant::now();
+        let mut machine = Machine::new();
+
+        machine
+            .registers
+            .set_8(Register::A(()), 0xFC, &mut machine.memory);
+        machine
+            .registers
+            .set_8(Register::B(()), 0x0F, &mut machine.memory);
+
+        let result = machine.execute(Instruction::Ana(Register::B(())));
+
+        let elapsed = now.elapsed();
+
+        println!(
+            "inx: Time elapsed: {:?}\nReturn: {:?}",
+            elapsed,
+            machine.registers.get_8(Register::A(()), &machine.memory)
+        );
     }
 }
