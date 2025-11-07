@@ -201,7 +201,7 @@ impl RegisterMap {
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum HaltReason {
-    Instruction,
+    HaltInstruction,
     InvalidInstruction,
     StackOverflow,
     StackUnderflow,
@@ -327,7 +327,7 @@ impl Machine {
         match result {
             ExecutionResult::Running => MachineState::Running,
             ExecutionResult::ControlTransfer => MachineState::Running,
-            ExecutionResult::Halt => MachineState::Halted(HaltReason::Instruction),
+            ExecutionResult::Halt => MachineState::Halted(HaltReason::HaltInstruction),
             ExecutionResult::StackOverflow => MachineState::Halted(HaltReason::StackOverflow),
             ExecutionResult::StackUnderflow => MachineState::Halted(HaltReason::StackUnderflow),
         }
@@ -336,7 +336,6 @@ impl Machine {
     pub fn load(&self) -> Option<Instruction> {
         let mut stream = Reader::new(&self.memory().0[self.pc().value() as usize..]);
         coding::decode(&mut stream)
-        
     }
 
     fn execute(&mut self, instruction: Instruction) -> ExecutionResult {
