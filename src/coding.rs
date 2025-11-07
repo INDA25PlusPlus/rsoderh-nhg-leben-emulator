@@ -137,6 +137,7 @@ pub fn decode<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
         .or_else(|| decode::parse_ral(stream))
         .or_else(|| decode::parse_rar(stream))
         .or_else(|| decode::parse_cma(stream))
+        .or_else(|| decode::parse_cmc(stream))
         .or_else(|| decode::parse_stc(stream))
         .or_else(|| decode::parse_jmp(stream))
         .or_else(|| decode::parse_jcc(stream))

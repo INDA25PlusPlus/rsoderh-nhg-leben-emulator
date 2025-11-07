@@ -172,8 +172,16 @@ pub fn parse_stax<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_xchg<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 1;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1110_1011, 0b1111_1111) {
+        return None;
+    };
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Xchg);
 }
 
 
@@ -196,8 +204,18 @@ pub fn parse_add<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_adi<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1100_0110, 0b1111_1111) {
+        return None;
+    };
+
+    let data = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Adi(data));
 }
 
 pub fn parse_adc<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
@@ -218,8 +236,18 @@ pub fn parse_adc<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_aci<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1100_1110, 0b1111_1111) {
+        return None;
+    };
+
+    let data = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Aci(data));
 }
 
 pub fn parse_sub<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
@@ -240,8 +268,18 @@ pub fn parse_sub<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_sui<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1101_0110, 0b1111_1111) {
+        return None;
+    };
+
+    let data = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Sui(data));
 }
 
 pub fn parse_sbb<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
@@ -262,8 +300,18 @@ pub fn parse_sbb<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_sbi<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1101_1110, 0b1111_1111) {
+        return None;
+    };
+
+    let data = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Sbi(data));
 }
 
 pub fn parse_inr<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
@@ -381,8 +429,18 @@ pub fn parse_ana<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_ani<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1110_0110, 0b1111_1111) {
+        return None;
+    };
+
+    let data = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Ani(data));
 }
 
 pub fn parse_xra<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
@@ -403,8 +461,18 @@ pub fn parse_xra<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_xri<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1110_1110, 0b1111_1111) {
+        return None;
+    };
+
+    let data = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Xri(data));
 }
 
 pub fn parse_ora<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
@@ -425,8 +493,18 @@ pub fn parse_ora<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_ori<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1111_0110, 0b1111_1111) {
+        return None;
+    };
+
+    let data = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Ori(data));
 }
 
 pub fn parse_cmp<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
@@ -447,8 +525,18 @@ pub fn parse_cmp<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_cpi<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1111_1110, 0b1111_1111) {
+        return None;
+    };
+
+    let data = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Cpi(data));
 }
 
 pub fn parse_rlc<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
@@ -666,8 +754,16 @@ pub fn parse_rst<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_pchl<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 1;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1110_1001, 0b1111_1111) {
+        return None;
+    };
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Pchl);
 }
 
 
@@ -705,13 +801,29 @@ pub fn parse_pop<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_xthl<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 1;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1110_0011, 0b1111_1111) {
+        return None;
+    };
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Xchg);
 }
 
 pub fn parse_sphl<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 1;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1111_1001, 0b1111_1111) {
+        return None;
+    };
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Xchg);
 }
 
 pub fn parse_in<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
@@ -745,13 +857,29 @@ pub fn parse_out<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
 }
 
 pub fn parse_ei<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 1;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1111_1011, 0b1111_1111) {
+        return None;
+    };
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Ei);
 }
 
 pub fn parse_di<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
-    // todo
-    None
+    static LEN: usize = 1;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1111_0011, 0b1111_1111) {
+        return None;
+    };
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Di);
 }
 
 pub fn parse_hlt<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
