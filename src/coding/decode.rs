@@ -674,6 +674,36 @@ pub fn parse_call<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
     return Some(Instruction::Call(addr.into()));
 }
 
+pub fn parse_out<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1101_0011, 0b1111_1111) {
+        return None;
+    };
+
+    let port = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::Out(port));
+}
+
+pub fn parse_in<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
+    static LEN: usize = 2;
+    let bytes = stream.peek_n(LEN)?;
+    let opcode = bytes[0];
+    if !is_eq_masked(opcode, 0b1101_1011, 0b1111_1111) {
+        return None;
+    };
+
+    let port = bytes[1];
+
+    stream.skip_n(LEN);
+
+    return Some(Instruction::In(port));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

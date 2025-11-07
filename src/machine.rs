@@ -1,3 +1,5 @@
+use std::io::{self, Read};
+
 use crate::{
     coding::{self, reader::Reader},
     instruction::{
@@ -227,6 +229,7 @@ pub struct Machine {
     registers: RegisterMap,
     conditions: ConditionRegisters,
     pc: Data16,
+    pub stdout: Vec<u8>,
 }
 
 fn is_even(value: u32) -> bool {
@@ -241,6 +244,7 @@ impl Machine {
             registers: RegisterMap::new(),
             conditions: ConditionRegisters::new(),
             pc: Data16::ZERO,
+            stdout: Vec::new(),
         }
     }
 
@@ -791,8 +795,45 @@ impl Machine {
             Instruction::Xthl => unimplemented!(),
             Instruction::Sphl => unimplemented!(),
             // We don't support io
-            Instruction::In(_) => unimplemented!(),
-            Instruction::Out(_) => unimplemented!(),
+            Instruction::In(port) => {
+                let byte = match port {
+                    0 => {
+                        match io::stdin()
+                            .bytes()
+                            .next()
+                            .map(|res| res.expect("surely io doesn't error"))
+                        {
+                            Some(byte) => byte,
+                            None => return ExecutionResult::Halt,
+                        }
+                    }
+                    _ => 0,
+                };
+                
+                self.registers.set_8(Register::A(()), byte, &mut self.memory);
+
+                ExecutionResult::Running
+            }
+            Instruction::Out(port) => {
+                match port {
+                    0 => {
+                        let byte = self.register_8(Register::A(()));
+                        self.stdout.push(byte);
+                        ExecutionResult::Running
+                    }
+                    1 => {
+                        let number = self.register_8(Register::A(()));
+                        self.stdout.extend_from_slice(format!("{}", number).as_bytes());
+                        ExecutionResult::Running
+                    }
+                    2 => {
+                        let number = self.register_16(RegisterPair::Hl(())).value();
+                        self.stdout.extend_from_slice(format!("{}", number).as_bytes());
+                        ExecutionResult::Running
+                    }
+                    _ => ExecutionResult::Running,
+                }
+            },
             // We don't support interrupts
             Instruction::Ei => unimplemented!(),
             Instruction::Di => unimplemented!(),

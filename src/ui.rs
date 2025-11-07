@@ -17,7 +17,7 @@ use tui::{
     layout::{Constraint, Direction, Layout, Margin, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, BorderType, Borders, Paragraph},
+    widgets::{Block, BorderType, Borders, Paragraph, Wrap},
 };
 
 use crate::{
@@ -139,19 +139,31 @@ impl Ui {
     fn draw(&self, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> anyhow::Result<()> {
         terminal.draw(|f| {
             static REGISTERS_HEIGHT: u16 = 5 + 2;
+            static MEMORY_MIN_WIDTH: u16 = 70 + 4;
             let registers_instructions_area_height = Constraint::Ratio(2, 5)
                 .apply(f.size().height)
                 .max(REGISTERS_HEIGHT);
+            
+            let memory_width = Constraint::Ratio(3, 5)
+                .apply(f.size().width)
+                .max(MEMORY_MIN_WIDTH);
+            
+            let mut program_area = f.size();
+            program_area.width = memory_width;
+            
+            let mut stdout_area = f.size();
+            stdout_area.width = stdout_area.width - memory_width;
+            stdout_area.x = program_area.right();
+            stdout_area.height -= 1;
 
-            let mut memory_area = f.size();
+            let mut memory_area = program_area;
             memory_area.height -= registers_instructions_area_height + 1;
 
-            let mut registers_instructions_area = f.size();
+            let mut registers_instructions_area = program_area;
             registers_instructions_area.height = registers_instructions_area_height;
             registers_instructions_area.y = memory_area.bottom();
             
-            
-            let mut keys_area = f.size();
+            let mut keys_area = program_area;
             keys_area.height = 1;
             keys_area.y = registers_instructions_area.bottom();
 
@@ -168,6 +180,8 @@ impl Ui {
             self.draw_instructions(f, instructions_area);
             
             self.draw_keys(f, keys_area);
+            
+            self.draw_stdout(f, stdout_area);
         })?;
         Ok(())
     }
@@ -319,6 +333,22 @@ impl Ui {
             Span::styled("Q", *STYLE_BLOCK_LABEL),
         ]));
         f.render_widget(par, area);
+    }
+    
+    fn draw_stdout(&self, f: &mut Frame<'_, CrosstermBackend<io::Stdout>>, area: Rect) {
+        let block = Block::default()
+            .title(Span::styled("Stdout", *STYLE_BLOCK_LABEL))
+            .borders(Borders::all())
+            .border_type(BorderType::Rounded)
+            .border_style(*STYLE_BLOCK_BORDER);
+        let block_area = block.inner(area).inner(&Margin {
+            vertical: 0,
+            horizontal: 1,
+        });
+        f.render_widget(block, area);
+        
+        let par = Paragraph::new(String::from_utf8_lossy(&self.machine.stdout)).wrap(Wrap { trim: true });
+        f.render_widget(par, block_area);
     }
 
     fn input(&mut self, event: event::KeyEvent) -> anyhow::Result<()> {

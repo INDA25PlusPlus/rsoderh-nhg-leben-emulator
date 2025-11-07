@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::instruction::{Address, Condition, Data8, Data16, Register, RegisterPair, RegisterPairIndirect, RegisterPairOrStatus, RestartNumber};
+use crate::instruction::{Address, Condition, Data8, Data16, Port, Register, RegisterPair, RegisterPairIndirect, RegisterPairOrStatus, RestartNumber};
 
 fn bits_write_offset(value: u8, insert: u8, index: u8) -> u8 {
     value | (insert << index)
@@ -62,6 +62,10 @@ fn write_data_16(stream: &mut impl io::Write, data: Data16) -> io::Result<()> {
 fn write_addr(stream: &mut impl io::Write, addr: Address) -> io::Result<()> {
     let data: Data16 = addr.into();
     stream.write(&[data.low, data.high]).map(|_| ())
+}
+
+fn write_port(stream: &mut impl io::Write, port: Port) -> io::Result<()> {
+    stream.write(&[port]).map(|_| ())
 }
 
 pub fn encode_noop<'a>(stream: &mut impl io::Write) -> io::Result<()> {
@@ -238,5 +242,15 @@ pub fn encode_ret<'a>(stream: &mut impl io::Write) -> io::Result<()> {
 pub fn encode_call<'a>(stream: &mut impl io::Write, addr: Address) -> io::Result<()> {
     write_opcode(stream, 0b1100_1101)?;
     write_addr(stream, addr)
+}
+
+pub fn encode_out<'a>(stream: &mut impl io::Write, port: Port) -> io::Result<()> {
+    write_opcode(stream, 0b1101_0011)?;
+    write_port(stream, port)
+}
+
+pub fn encode_in<'a>(stream: &mut impl io::Write, port: Port) -> io::Result<()> {
+    write_opcode(stream, 0b1101_1011)?;
+    write_port(stream, port)
 }
 

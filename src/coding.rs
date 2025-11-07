@@ -87,8 +87,8 @@ pub fn encode(buffer: &mut impl Write, instruction: Instruction) -> std::io::Res
         }
         Instruction::Xthl => unimplemented!(),
         Instruction::Sphl => unimplemented!(),
-        Instruction::In(_port) => unimplemented!(),
-        Instruction::Out(_port) => unimplemented!(),
+        Instruction::In(port) => encode::encode_in(buffer, port),
+        Instruction::Out(port) => encode::encode_out(buffer, port),
         Instruction::Ei => unimplemented!(),
         Instruction::Di => unimplemented!(),
         Instruction::Hlt => encode::encode_hlt(buffer),
@@ -138,4 +138,6 @@ pub fn decode<'a>(stream: &mut Reader<'a>) -> Option<Instruction> {
         .or_else(|| decode::parse_rst(stream))
         .or_else(|| decode::parse_ret(stream))
         .or_else(|| decode::parse_call(stream))
+        .or_else(|| decode::parse_out(stream))
+        .or_else(|| decode::parse_in(stream))
 }
