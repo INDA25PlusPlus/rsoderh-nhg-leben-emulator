@@ -1,13 +1,13 @@
 use std::{
     fmt::Display,
     io,
-    sync::{LazyLock, mpsc},
-    time::Duration,
+    sync::{LazyLock, mpsc::{self, TryRecvError}},
+    time::{Duration, Instant},
 };
 
 use anyhow::anyhow;
 use crossterm::{
-    event::{self, DisableMouseCapture, KeyCode},
+    event::{self, DisableMouseCapture, KeyCode, KeyEvent},
     execute,
     terminal::{LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -28,6 +28,9 @@ use crate::{
 };
 
 mod memory_view;
+
+static DRAW_TIMEOUT: Duration = Duration::from_millis(33);
+static INPUT_TIMEOUT: Duration = Duration::from_millis(100);
 
 fn parse_hex(hex: &str) -> anyhow::Result<Color> {
     let digits = hex
@@ -116,30 +119,36 @@ enum UiState {
 
 struct Ui {
     machine: Machine,
+    input_receiver: mpsc::Receiver<KeyEvent>,
     quit_sender: mpsc::Sender<()>,
     state: UiState,
 }
 
 impl Ui {
-    fn new(machine: Machine, quit_sender: mpsc::Sender<()>) -> Self {
+    fn new(machine: Machine, input_receiver: mpsc::Receiver<KeyEvent>, quit_sender: mpsc::Sender<()>) -> Self {
         Self {
             machine,
+            input_receiver,
             quit_sender,
             state: UiState::Paused,
         }
     }
 
-    fn tick(
-        &mut self,
-        terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
-    ) -> anyhow::Result<()> {
+    fn tick(&mut self) -> anyhow::Result<()> {
+        match self.input_receiver.try_recv() {
+            Ok(input_event) => self.input(input_event)?,
+            Err(err) => match err {
+                TryRecvError::Empty => {},
+                err => return Err(anyhow!(err)),
+            },
+        }
         match self.state {
             UiState::Running => {
                 self.machine.run_cycle();
             }
             UiState::Paused => {}
         }
-        self.draw(terminal)
+        Ok(())
     }
 
     fn draw(&self, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> anyhow::Result<()> {
@@ -429,13 +438,27 @@ pub fn start(machine: Machine) -> anyhow::Result<()> {
 
     enable_raw_mode()?;
 
+    let (input_sender, input_receiver) = mpsc::channel::<KeyEvent>();
     let (quit_sender, quit_receiver) = mpsc::channel::<()>();
-    let mut ui = Ui::new(machine, quit_sender.clone());
+    let mut ui = Ui::new(machine, input_receiver, quit_sender.clone());
+
+    let mut last_draw_time = Instant::now();
 
     std::thread::spawn(move || -> Result<(), anyhow::Error> {
         loop {
-            ui.tick(&mut terminal)?;
-            if event::poll(Duration::from_millis(100))? {
+            ui.tick()?;
+            let now = Instant::now();
+            let duration = now - last_draw_time;
+            if duration > DRAW_TIMEOUT {
+                ui.draw(&mut terminal)?;
+                last_draw_time = now + duration - DRAW_TIMEOUT;
+            }
+        }
+    });
+
+    std::thread::spawn(move || -> Result<(), anyhow::Error> {
+        loop {
+            if event::poll(INPUT_TIMEOUT)? {
                 if let event::Event::Key(key_event) = event::read()? {
                     if key_event.code == event::KeyCode::Char('c')
                         && key_event
@@ -445,7 +468,7 @@ pub fn start(machine: Machine) -> anyhow::Result<()> {
                         // signal by settting our AtomicBool to false
                         quit_sender.send(())?;
                     } else {
-                        ui.input(key_event)?;
+                        input_sender.send(key_event)?;
                     }
                 }
             }

@@ -360,7 +360,7 @@ impl Machine {
 
         let result = self.execute(instruction);
         if matches!(result, ExecutionResult::Running | ExecutionResult::Halt) {
-            self.pc = (self.pc.value() + instruction_len as u16).into();
+            self.pc = (self.pc.value().wrapping_add(instruction_len as u16)).into();
         }
 
         match result {
