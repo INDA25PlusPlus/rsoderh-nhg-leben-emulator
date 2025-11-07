@@ -328,6 +328,12 @@ impl Machine {
             ExecutionResult::StackUnderflow => MachineState::Halted(HaltReason::StackUnderflow),
         }
     }
+    
+    pub fn load(&self) -> Option<Instruction> {
+        let mut stream = Reader::new(&self.memory().0[self.pc().value() as usize..]);
+        coding::decode(&mut stream)
+        
+    }
 
     fn execute(&mut self, instruction: Instruction) -> ExecutionResult {
         match instruction {

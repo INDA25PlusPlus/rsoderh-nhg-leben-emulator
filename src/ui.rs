@@ -21,6 +21,7 @@ use tui::{
 };
 
 use crate::{
+    coding,
     instruction::{Register, RegisterPair},
     machine::{Machine, MachineState},
     ui::memory_view::MemoryView,
@@ -99,8 +100,11 @@ static STYLE_LABEL: LazyLock<Style> = LazyLock::new(|| {
 });
 static STYLE_VALUE: LazyLock<Style> = LazyLock::new(|| Style::default().fg(*COLOR_PEACH));
 static STYLE_DATA: LazyLock<Style> = LazyLock::new(|| Style::default().fg(*COLOR_SUBTEXT_0));
-static STYLE_PC: LazyLock<Style> =
-    LazyLock::new(|| Style::default().fg(*COLOR_MAROON).add_modifier(Modifier::BOLD));
+static STYLE_PC: LazyLock<Style> = LazyLock::new(|| {
+    Style::default()
+        .fg(*COLOR_MAROON)
+        .add_modifier(Modifier::BOLD)
+});
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 enum UiState {
@@ -143,14 +147,14 @@ impl Ui {
             let registers_instructions_area_height = Constraint::Ratio(2, 5)
                 .apply(f.size().height)
                 .max(REGISTERS_HEIGHT);
-            
+
             let memory_width = Constraint::Ratio(3, 5)
                 .apply(f.size().width)
                 .max(MEMORY_MIN_WIDTH);
-            
+
             let mut program_area = f.size();
             program_area.width = memory_width;
-            
+
             let mut stdout_area = f.size();
             stdout_area.width = stdout_area.width - memory_width;
             stdout_area.x = program_area.right();
@@ -162,7 +166,7 @@ impl Ui {
             let mut registers_instructions_area = program_area;
             registers_instructions_area.height = registers_instructions_area_height;
             registers_instructions_area.y = memory_area.bottom();
-            
+
             let mut keys_area = program_area;
             keys_area.height = 1;
             keys_area.y = registers_instructions_area.bottom();
@@ -178,9 +182,9 @@ impl Ui {
 
             self.draw_registers(f, registers_area);
             self.draw_instructions(f, instructions_area);
-            
+
             self.draw_keys(f, keys_area);
-            
+
             self.draw_stdout(f, stdout_area);
         })?;
         Ok(())
@@ -319,10 +323,35 @@ impl Ui {
         }
 
         let mut instructions_area = block_area;
-        instructions_area.y -= 1;
+        instructions_area.y += 1;
         instructions_area.height -= 1;
+        instructions_area.x += 1;
+        instructions_area.width -= 1;
+
+        if let Some(instruction) = self.machine.load() {
+            let mut instruction_bytes = Vec::new();
+            coding::encode(&mut instruction_bytes, instruction)
+                .expect("writing to Vec can't error");
+
+            // This is actually terrible
+            fn join_bytes(bytes: &[u8]) -> String {
+                bytes
+                    .iter()
+                    .map(|byte| format!("{:02x}", byte))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            }
+
+            let par = Paragraph::new(Spans::from(vec![
+                Span::styled(join_bytes(&instruction_bytes), *STYLE_VALUE),
+                Span::raw(" "),
+                Span::styled(format!("{:?}", instruction), *STYLE_DATA),
+            ]));
+            
+            f.render_widget(par, instructions_area);
+        }
     }
-    
+
     fn draw_keys(&self, f: &mut Frame<'_, CrosstermBackend<io::Stdout>>, area: Rect) {
         let par = Paragraph::new(Spans::from(vec![
             Span::styled(" pause: ", *STYLE_BLOCK_BORDER),
@@ -334,7 +363,7 @@ impl Ui {
         ]));
         f.render_widget(par, area);
     }
-    
+
     fn draw_stdout(&self, f: &mut Frame<'_, CrosstermBackend<io::Stdout>>, area: Rect) {
         let block = Block::default()
             .title(Span::styled("Stdout", *STYLE_BLOCK_LABEL))
@@ -346,8 +375,9 @@ impl Ui {
             horizontal: 1,
         });
         f.render_widget(block, area);
-        
-        let par = Paragraph::new(String::from_utf8_lossy(&self.machine.stdout)).wrap(Wrap { trim: true });
+
+        let par =
+            Paragraph::new(String::from_utf8_lossy(&self.machine.stdout)).wrap(Wrap { trim: true });
         f.render_widget(par, block_area);
     }
 
