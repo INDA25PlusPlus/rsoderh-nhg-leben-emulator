@@ -1,0 +1,36 @@
+;
+; Print out the first 20 fibonacci numbers
+;
+
+        ORG 0
+
+START:  
+        MVI A, 0
+        MVI B, 1
+        MVI D, 0        ; D ticks down from 20
+        MVI E, 20
+
+LOOP:   
+        OUT 1           ; print decimal format
+
+        MOV L, A
+        MVI A, 20H
+        OUT 0
+        MOV A, L
+
+        ADD B           ; A += B
+
+        MOV C, A        ; temp store A
+        MOV A, D
+
+        CMP E
+        JZ STOP         ; if D == 0
+
+        MOV A, B        ; swap A, B
+        MOV B, C
+
+        DCR D           ; D--
+        JMP LOOP
+
+STOP:
+        END

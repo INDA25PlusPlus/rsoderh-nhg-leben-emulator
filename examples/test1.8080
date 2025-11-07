@@ -1,0 +1,11 @@
+                    ; This is a comment
+        ORG 10H     ; This is a comment
+
+        
+        
+        MOV A, B
+        JMP TEST    ; Jump to subroutine
+
+TEST:   MOV B, A    ; Moves A into B
+
+        END

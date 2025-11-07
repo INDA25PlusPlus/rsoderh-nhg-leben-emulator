@@ -337,7 +337,7 @@ impl Machine {
 
     fn execute(&mut self, instruction: Instruction) -> ExecutionResult {
         match instruction {
-            Instruction::Mov(source, destination) => {
+            Instruction::Mov(destination, source) => {
                 self.registers.set_8(
                     destination,
                     self.registers.get_8(source, &self.memory),

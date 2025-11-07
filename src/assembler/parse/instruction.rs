@@ -17,7 +17,7 @@ impl ParsedInstruction {
         use ParsedInstructionInner as PI;
         match self.inner {
             PI::Mov(_, _, r1, _, _, _, r2) => Some(I::Mov(r1, r2)),
-            PI::Mvi(_, _, r1, _, data) => Some(I::Mvi(r1, data.try_into().ok()?)),
+            PI::Mvi(_, _, r1, _, _, _, data) => Some(I::Mvi(r1, data.try_into().ok()?)),
             PI::Lxi(_, _, rp, _, data) => Some(I::Lxi(rp, data.try_into().ok()?)),
             PI::Lda(_, _, label) => Some(I::Lda(label_lookup.get(label)?)),
             PI::Sta(_, _, label) => Some(I::Sta(label_lookup.get(label)?)),
@@ -188,7 +188,7 @@ impl ParsedInstruction {
 #[derive(Clone, Debug, PartialEq, Eq, Parsable)]
 enum ParsedInstructionInner {
     Mov(Mov, Ws, Register, Ws, Comma, Ws, Register),
-    Mvi(Mvi, Ws, Register, Ws, LiteralNumber),
+    Mvi(Mvi, Ws, Register, Ws, Comma, Ws, LiteralNumber),
     Lxi(Lxi, Ws, RegisterPair, Ws, LiteralNumber),
     Lda(Lda, Ws, Label),
     Sta(Sta, Ws, Label),
