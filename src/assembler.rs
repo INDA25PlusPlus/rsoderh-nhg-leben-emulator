@@ -108,7 +108,7 @@ mod tests {
                 MOV A, B
                 JMP TEST    ; Jump to subroutine
         
-        TEST:   MOV B, A    ; Moves A into B
+        TEST:   MOV B, A    ; Moves A into B`
         
                             ; This is an error; `END` is missing
                 END
@@ -116,9 +116,9 @@ mod tests {
 
         let (instructions, start) = parse_assembly(source).expect("Failed to parse program");
         assert_eq!(instructions, vec![
-            InstructionOrData::Instruction(Instruction::Mov(Register::A(()), Register::B(()))),
+            InstructionOrData::Instruction(Instruction::Mov(Register::A, Register::B)),
             InstructionOrData::Instruction(Instruction::Jmp(20)),
-            InstructionOrData::Instruction(Instruction::Mov(Register::B(()), Register::A(()))),
+            InstructionOrData::Instruction(Instruction::Mov(Register::B, Register::A)),
         ]);
         assert_eq!(start, 16);
     }

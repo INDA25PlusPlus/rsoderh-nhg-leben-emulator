@@ -5,27 +5,35 @@ use parsable::Parsable;
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Parsable)]
 pub enum Register {
-    A(#[literal = b"A"] ()) = 0b111,
-    B(#[literal = b"B"] ()) = 0b000,
-    C(#[literal = b"C"] ()) = 0b001,
-    D(#[literal = b"D"] ()) = 0b010,
-    E(#[literal = b"E"] ()) = 0b011,
-    H(#[literal = b"H"] ()) = 0b100,
-    L(#[literal = b"L"] ()) = 0b101,
-    M(#[literal = b"M"] ()) = 0b110,
+    #[literal = b"A"]
+    A = 0b111,
+    #[literal = b"B"]
+    B = 0b000,
+    #[literal = b"C"]
+    C = 0b001,
+    #[literal = b"D"]
+    D = 0b010,
+    #[literal = b"E"]
+    E = 0b011,
+    #[literal = b"H"]
+    H = 0b100,
+    #[literal = b"L"]
+    L = 0b101,
+    #[literal = b"M"]
+    M = 0b110,
 }
 
 impl Register {
     pub fn repr(&self) -> u8 {
         match self{
-            Register::A(_) => 0b111,
-            Register::B(_) => 0b000,
-            Register::C(_) => 0b001,
-            Register::D(_) => 0b010,
-            Register::E(_) => 0b011,
-            Register::H(_) => 0b100,
-            Register::L(_) => 0b101,
-            Register::M(_) => 0b110,
+            Register::A => 0b111,
+            Register::B => 0b000,
+            Register::C => 0b001,
+            Register::D => 0b010,
+            Register::E => 0b011,
+            Register::H => 0b100,
+            Register::L => 0b101,
+            Register::M => 0b110,
         }
     }
 }
@@ -33,14 +41,14 @@ impl Register {
 impl Display for Register {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            Register::B(..) => "B",
-            Register::C(..) => "C",
-            Register::D(..) => "D",
-            Register::E(..) => "E",
-            Register::H(..) => "H",
-            Register::L(..) => "L",
-            Register::M(..) => "M",
-            Register::A(..) => "A",
+            Register::B => "B",
+            Register::C => "C",
+            Register::D => "D",
+            Register::E => "E",
+            Register::H => "H",
+            Register::L => "L",
+            Register::M => "M",
+            Register::A => "A",
         })
     }
 }
@@ -49,14 +57,14 @@ impl TryFrom<u8> for Register {
     type Error = ();
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0b111 => Ok(Self::A(())),
-            0b000 => Ok(Self::B(())),
-            0b001 => Ok(Self::C(())),
-            0b010 => Ok(Self::D(())),
-            0b011 => Ok(Self::E(())),
-            0b100 => Ok(Self::H(())),
-            0b101 => Ok(Self::L(())),
-            0b110 => Ok(Self::M(())),
+            0b111 => Ok(Self::A),
+            0b000 => Ok(Self::B),
+            0b001 => Ok(Self::C),
+            0b010 => Ok(Self::D),
+            0b011 => Ok(Self::E),
+            0b100 => Ok(Self::H),
+            0b101 => Ok(Self::L),
+            0b110 => Ok(Self::M),
             _ => Err(()),
         }
     }
@@ -65,19 +73,23 @@ impl TryFrom<u8> for Register {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Parsable)]
 pub enum RegisterPair {
-    Bc(#[literal = b"B"] ()) = 0b00,
-    De(#[literal = b"D"] ()) = 0b01,
-    Hl(#[literal = b"H"] ()) = 0b10,
-    Sp(#[literal = b"SP"] ()) = 0b11,
+    #[literal = b"B"]
+    Bc = 0b00,
+    #[literal = b"D"]
+    De = 0b01,
+    #[literal = b"H"]
+    Hl = 0b10,
+    #[literal = b"SP"]
+    Sp = 0b11,
 }
 
 impl RegisterPair {
     pub fn repr(&self) -> u8 {
         match self{
-            RegisterPair::Bc(_) => 0b00,
-            RegisterPair::De(_) => 0b01,
-            RegisterPair::Hl(_) => 0b10,
-            RegisterPair::Sp(_) => 0b11,
+            RegisterPair::Bc => 0b00,
+            RegisterPair::De => 0b01,
+            RegisterPair::Hl => 0b10,
+            RegisterPair::Sp => 0b11,
         }
     }
 }
@@ -85,10 +97,10 @@ impl RegisterPair {
 impl Display for RegisterPair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            RegisterPair::Bc(..) => "BC",
-            RegisterPair::De(..) => "DE",
-            RegisterPair::Hl(..) => "HL",
-            RegisterPair::Sp(..) => "SP",
+            RegisterPair::Bc => "BC",
+            RegisterPair::De => "DE",
+            RegisterPair::Hl => "HL",
+            RegisterPair::Sp => "SP",
         })
     }
 }
@@ -97,10 +109,10 @@ impl TryFrom<u8> for RegisterPair {
     type Error = ();
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0b00 => Ok(Self::Bc(())),
-            0b01 => Ok(Self::De(())),
-            0b10 => Ok(Self::Hl(())),
-            0b11 => Ok(Self::Sp(())),
+            0b00 => Ok(Self::Bc),
+            0b01 => Ok(Self::De),
+            0b10 => Ok(Self::Hl),
+            0b11 => Ok(Self::Sp),
             _ => Err(()),
         }
     }
@@ -109,15 +121,17 @@ impl TryFrom<u8> for RegisterPair {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Parsable)]
 pub enum RegisterPairIndirect {
-    Bc(#[literal = b"B"] ()) = 0b00,
-    De(#[literal = b"D"] ()) = 0b01,
+    #[literal = b"B"]
+    Bc = 0b00,
+    #[literal = b"D"]
+    De = 0b01,
 }
 
 impl RegisterPairIndirect {
     pub fn repr(&self) -> u8 {
         match self{
-            Self::Bc(_) => 0b00,
-            Self::De(_) => 0b01,
+            Self::Bc => 0b00,
+            Self::De => 0b01,
         }
     }
 }
@@ -126,8 +140,8 @@ impl TryFrom<u8> for RegisterPairIndirect {
     type Error = ();
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0b00 => Ok(Self::Bc(())),
-            0b01 => Ok(Self::De(())),
+            0b00 => Ok(Self::Bc),
+            0b01 => Ok(Self::De),
             _ => Err(()),
         }
     }
@@ -136,20 +150,24 @@ impl TryFrom<u8> for RegisterPairIndirect {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Parsable)]
 pub enum RegisterPairOrStatus {
-    Bc(#[literal = b"B"] ()) = 0b00,
-    De(#[literal = b"D"] ()) = 0b01,
-    Hl(#[literal = b"H"] ()) = 0b10,
-    StatusWord(#[literal = b"PSW"] ()) = 0b11,
+    #[literal = b"B"]
+    Bc = 0b00,
+    #[literal = b"D"]
+    De = 0b01,
+    #[literal = b"H"]
+    Hl = 0b10,
+    #[literal = b"PSW"]
+    StatusWord = 0b11,
 }
 
 
 impl RegisterPairOrStatus {
     pub fn repr(&self) -> u8 {
         match self{
-            Self::Bc(_) => 0b00,
-            Self::De(_) => 0b01,
-            Self::Hl(_) => 0b10,
-            Self::StatusWord(_) => 0b11,
+            Self::Bc => 0b00,
+            Self::De => 0b01,
+            Self::Hl => 0b10,
+            Self::StatusWord => 0b11,
         }
     }
 }
@@ -158,10 +176,10 @@ impl TryFrom<u8> for RegisterPairOrStatus {
     type Error = ();
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0b00 => Ok(Self::Bc(())),
-            0b01 => Ok(Self::De(())),
-            0b10 => Ok(Self::Hl(())),
-            0b11 => Ok(Self::StatusWord(())),
+            0b00 => Ok(Self::Bc),
+            0b01 => Ok(Self::De),
+            0b10 => Ok(Self::Hl),
+            0b11 => Ok(Self::StatusWord),
             _ => Err(()),
         }
     }

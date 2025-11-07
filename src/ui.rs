@@ -242,24 +242,24 @@ impl Ui {
         const ROWS: usize = 5;
         let register_grid: [[Option<RegisterSingleOrPair>; ROWS]; 3] = [
             [
-                Some(RegisterSingleOrPair::Single(Register::B(()))),
-                Some(RegisterSingleOrPair::Single(Register::D(()))),
-                Some(RegisterSingleOrPair::Single(Register::H(()))),
-                Some(RegisterSingleOrPair::Single(Register::M(()))),
-                Some(RegisterSingleOrPair::Single(Register::A(()))),
+                Some(RegisterSingleOrPair::Single(Register::B)),
+                Some(RegisterSingleOrPair::Single(Register::D)),
+                Some(RegisterSingleOrPair::Single(Register::H)),
+                Some(RegisterSingleOrPair::Single(Register::M)),
+                Some(RegisterSingleOrPair::Single(Register::A)),
             ],
             [
-                Some(RegisterSingleOrPair::Single(Register::C(()))),
-                Some(RegisterSingleOrPair::Single(Register::E(()))),
-                Some(RegisterSingleOrPair::Single(Register::L(()))),
+                Some(RegisterSingleOrPair::Single(Register::C)),
+                Some(RegisterSingleOrPair::Single(Register::E)),
+                Some(RegisterSingleOrPair::Single(Register::L)),
                 None,
                 None,
             ],
             [
-                Some(RegisterSingleOrPair::Pair(RegisterPair::Bc(()))),
-                Some(RegisterSingleOrPair::Pair(RegisterPair::De(()))),
-                Some(RegisterSingleOrPair::Pair(RegisterPair::Hl(()))),
-                Some(RegisterSingleOrPair::Pair(RegisterPair::Sp(()))),
+                Some(RegisterSingleOrPair::Pair(RegisterPair::Bc)),
+                Some(RegisterSingleOrPair::Pair(RegisterPair::De)),
+                Some(RegisterSingleOrPair::Pair(RegisterPair::Hl)),
+                Some(RegisterSingleOrPair::Pair(RegisterPair::Sp)),
                 None,
             ],
         ];
