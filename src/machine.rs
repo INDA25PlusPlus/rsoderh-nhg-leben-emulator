@@ -68,7 +68,7 @@ impl ConditionRegisters {
     fn condition_index(condition: ConditionRegister) -> usize {
         match condition {
             ConditionRegister::Carry => 0,
-            ConditionRegister::AuxiliaryCarry => 0,
+            ConditionRegister::AuxiliaryCarry => 1,
             ConditionRegister::Zero => 2,
             ConditionRegister::Sign => 3,
             ConditionRegister::Parity => 4,
@@ -254,6 +254,10 @@ impl Machine {
 
     pub fn registers(&self) -> &RegisterMap {
         &self.registers
+    }
+
+    pub fn conditions(&self) -> &ConditionRegisters {
+        &self.conditions
     }
 
     pub fn memory(&self) -> &Memory {

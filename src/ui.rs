@@ -23,7 +23,7 @@ use tui::{
 use crate::{
     coding,
     instruction::{Register, RegisterPair},
-    machine::{Machine, MachineState},
+    machine::{ConditionRegister, Machine, MachineState},
     ui::memory_view::MemoryView,
 };
 
@@ -52,16 +52,18 @@ fn parse_hex(hex: &str) -> anyhow::Result<Color> {
 }
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
-pub enum RegisterSingleOrPair {
+pub enum RegisterDisplay {
     Single(Register),
     Pair(RegisterPair),
+    Flags,
 }
 
-impl Display for RegisterSingleOrPair {
+impl Display for RegisterDisplay {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegisterSingleOrPair::Single(register) => register.fmt(f),
-            RegisterSingleOrPair::Pair(register_pair) => register_pair.fmt(f),
+            RegisterDisplay::Single(register) => register.fmt(f),
+            RegisterDisplay::Pair(register_pair) => register_pair.fmt(f),
+            RegisterDisplay::Flags => f.write_str("FL"),
         }
     }
 }
@@ -173,7 +175,7 @@ impl Ui {
 
             let [registers_area, instructions_area]: [Rect; 2] = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Min(28 + 2), Constraint::Ratio(1, 1)].as_ref())
+                .constraints([Constraint::Min(32 + 2), Constraint::Ratio(1, 1)].as_ref())
                 .split(registers_instructions_area)
                 .try_into()
                 .expect("We created two areas");
@@ -231,7 +233,7 @@ impl Ui {
                 [
                     Constraint::Length(7 + 1),
                     Constraint::Length(7 + 1),
-                    Constraint::Length(10 + 1),
+                    Constraint::Length(15 + 1),
                 ]
                 .as_ref(),
             )
@@ -240,27 +242,27 @@ impl Ui {
             .expect("We created 3 areas");
 
         const ROWS: usize = 5;
-        let register_grid: [[Option<RegisterSingleOrPair>; ROWS]; 3] = [
+        let register_grid: [[Option<RegisterDisplay>; ROWS]; 3] = [
             [
-                Some(RegisterSingleOrPair::Single(Register::B)),
-                Some(RegisterSingleOrPair::Single(Register::D)),
-                Some(RegisterSingleOrPair::Single(Register::H)),
-                Some(RegisterSingleOrPair::Single(Register::M)),
-                Some(RegisterSingleOrPair::Single(Register::A)),
+                Some(RegisterDisplay::Single(Register::B)),
+                Some(RegisterDisplay::Single(Register::D)),
+                Some(RegisterDisplay::Single(Register::H)),
+                Some(RegisterDisplay::Single(Register::M)),
+                Some(RegisterDisplay::Single(Register::A)),
             ],
             [
-                Some(RegisterSingleOrPair::Single(Register::C)),
-                Some(RegisterSingleOrPair::Single(Register::E)),
-                Some(RegisterSingleOrPair::Single(Register::L)),
+                Some(RegisterDisplay::Single(Register::C)),
+                Some(RegisterDisplay::Single(Register::E)),
+                Some(RegisterDisplay::Single(Register::L)),
                 None,
                 None,
             ],
             [
-                Some(RegisterSingleOrPair::Pair(RegisterPair::Bc)),
-                Some(RegisterSingleOrPair::Pair(RegisterPair::De)),
-                Some(RegisterSingleOrPair::Pair(RegisterPair::Hl)),
-                Some(RegisterSingleOrPair::Pair(RegisterPair::Sp)),
-                None,
+                Some(RegisterDisplay::Pair(RegisterPair::Bc)),
+                Some(RegisterDisplay::Pair(RegisterPair::De)),
+                Some(RegisterDisplay::Pair(RegisterPair::Hl)),
+                Some(RegisterDisplay::Pair(RegisterPair::Sp)),
+                Some(RegisterDisplay::Flags),
             ],
         ];
 
@@ -277,16 +279,30 @@ impl Ui {
                     continue;
                 };
                 let value_string = match register {
-                    RegisterSingleOrPair::Single(register) => {
+                    RegisterDisplay::Single(register) => {
                         let value = self
                             .machine
                             .registers()
                             .get_8(register, self.machine.memory());
                         format!("0x{:02x}", value)
                     }
-                    RegisterSingleOrPair::Pair(register) => {
+                    RegisterDisplay::Pair(register) => {
                         let value = self.machine.registers().get_16(register);
                         format!("0x{:04x}", value.value())
+                    }
+                    RegisterDisplay::Flags => {
+                        let flags = self.machine.conditions();
+                        fn to_binary(b: bool) -> u8 {
+                            if b { 1 } else { 0 }
+                        }
+                        format!(
+                            "Z{}S{}P{}C{}A{}",
+                            to_binary(flags.get(ConditionRegister::Zero)),
+                            to_binary(flags.get(ConditionRegister::Sign)),
+                            to_binary(flags.get(ConditionRegister::Parity)),
+                            to_binary(flags.get(ConditionRegister::Carry)),
+                            to_binary(flags.get(ConditionRegister::AuxiliaryCarry)),
+                        )
                     }
                 };
                 let par = Paragraph::new(vec![Spans::from(vec![
