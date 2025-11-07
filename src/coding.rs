@@ -44,15 +44,15 @@ pub fn encode(buffer: &mut impl Write, instruction: Instruction) -> std::io::Res
         Instruction::Stax(register_pair_indirect) => {
             encode::encode_stax(buffer, register_pair_indirect)
         }
-        Instruction::Xchg => unimplemented!(),
+        Instruction::Xchg => encode::encode_xchg(buffer),
         Instruction::Add(register) => encode::encode_add(buffer, register),
-        Instruction::Adi(_data) => unimplemented!(),
+        Instruction::Adi(data) => encode::encode_adi(buffer, data),
         Instruction::Adc(register) => encode::encode_adc(buffer, register),
-        Instruction::Aci(_data) => unimplemented!(),
+        Instruction::Aci(data) => encode::encode_aci(buffer, data),
         Instruction::Sub(register) => encode::encode_sub(buffer, register),
-        Instruction::Sui(_data) => unimplemented!(),
+        Instruction::Sui(data) => encode::encode_sui(buffer, data),
         Instruction::Sbb(register) => encode::encode_sbb(buffer, register),
-        Instruction::Sbi(_data) => unimplemented!(),
+        Instruction::Sbi(data) => encode::encode_sbi(buffer, data),
         Instruction::Inr(register) => encode::encode_inr(buffer, register),
         Instruction::Dcr(register) => encode::encode_dcr(buffer, register),
         Instruction::Inx(register_pair) => encode::encode_inx(buffer, register_pair),
@@ -60,13 +60,13 @@ pub fn encode(buffer: &mut impl Write, instruction: Instruction) -> std::io::Res
         Instruction::Dad(register_pair) => encode::encode_dad(buffer, register_pair),
         Instruction::Daa => encode::encode_daa(buffer),
         Instruction::Ana(register) => encode::encode_ana(buffer, register),
-        Instruction::Ani(_data) => unimplemented!(),
+        Instruction::Ani(data) => encode::encode_ani(buffer, data),
         Instruction::Xra(register) => encode::encode_xra(buffer, register),
-        Instruction::Xri(_data) => unimplemented!(),
+        Instruction::Xri(data) => encode::encode_xri(buffer, data),
         Instruction::Ora(register) => encode::encode_ora(buffer, register),
-        Instruction::Ori(_data) => unimplemented!(),
+        Instruction::Ori(data) => encode::encode_ori(buffer, data),
         Instruction::Cmp(register) => encode::encode_cmp(buffer, register),
-        Instruction::Cpi(_data) => unimplemented!(),
+        Instruction::Cpi(data) => encode::encode_cpi(buffer, data),
         Instruction::Rlc => encode::encode_rlc(buffer),
         Instruction::Rrc => encode::encode_rrc(buffer),
         Instruction::Ral => encode::encode_ral(buffer),
@@ -81,19 +81,19 @@ pub fn encode(buffer: &mut impl Write, instruction: Instruction) -> std::io::Res
         Instruction::Ret => encode::encode_ret(buffer),
         Instruction::Rcc(condition) => encode::encode_rcc(buffer, condition),
         Instruction::Rst(restart_number) => encode::encode_rst(buffer, restart_number),
-        Instruction::Pchl => unimplemented!(),
+        Instruction::Pchl => encode::encode_pchl(buffer),
         Instruction::Push(register_pair_or_status) => {
             encode::encode_push(buffer, register_pair_or_status)
         }
         Instruction::Pop(register_pair_or_status) => {
             encode::encode_pop(buffer, register_pair_or_status)
         }
-        Instruction::Xthl => unimplemented!(),
-        Instruction::Sphl => unimplemented!(),
+        Instruction::Xthl => encode::encode_xthl(buffer),
+        Instruction::Sphl => encode::encode_sphl(buffer),
         Instruction::In(port) => encode::encode_in(buffer, port),
         Instruction::Out(port) => encode::encode_out(buffer, port),
-        Instruction::Ei => unimplemented!(),
-        Instruction::Di => unimplemented!(),
+        Instruction::Ei => encode::encode_ei(buffer),
+        Instruction::Di => encode::encode_di(buffer),
         Instruction::Hlt => encode::encode_hlt(buffer),
         Instruction::Nop => encode::encode_noop(buffer),
     }
