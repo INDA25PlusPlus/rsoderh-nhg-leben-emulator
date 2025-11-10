@@ -4,24 +4,23 @@
 
 START:
     MVI A, 0
-    MVI E, 0
-    MVI L, 11H  ; Start of string
+    LXI H, STR  ; Start of string
 
 LOOP:
     MOV A, M    ; Read byte
-    OUT 0       ; Print char
 
-    CMP E
+    CPI 0
     JZ STOP     ; If null byte, stop
 
-    INR L       ; Pointer++
+    OUT 0       ; Print char
+
+    INX H       ; Pointer++
     JMP LOOP
 
 STR:
     DB 'Hello, World!'
-    NOP         ; Can't currently encode null byte, so use
-                ; NOP = 0
+    DB 0
 
 STOP:
-    JMP STOP    ; Halt instruction doesn't work lol
+    HLT
     END

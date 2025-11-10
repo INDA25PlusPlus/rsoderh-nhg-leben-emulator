@@ -1,0 +1,16 @@
+;
+; Read characters from stdin and write them to stdout. Press enter to exit
+;
+
+LOOP:
+        IN 0
+        CPI BH      ; \n
+        JZ STOP
+        CPI DH      ; \r
+        JZ STOP    
+        OUT 0
+        JMP LOOP
+
+STOP:
+        HLT
+        END
