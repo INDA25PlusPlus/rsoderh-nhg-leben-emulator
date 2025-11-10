@@ -356,11 +356,11 @@ impl Machine {
         let Some(instruction) = coding::decode(&mut stream) else {
             return MachineState::Halted(HaltReason::InvalidInstruction);
         };
-        let instruction_len = stream.read_amount_bytes();
+        let instruction_len = stream.read_amount_bytes() as u16;
 
         let result = self.execute(instruction);
-        if matches!(result, ExecutionResult::Running | ExecutionResult::Halt) {
-            self.pc = (self.pc.value().wrapping_add(instruction_len as u16)).into();
+        if matches!(result, ExecutionResult::Running) {
+            self.pc = self.pc.value().wrapping_add(instruction_len).into();
         }
 
         match result {
@@ -933,7 +933,8 @@ impl Machine {
                 }
             }
             Instruction::Call(address) => {
-                if self.stack_push(self.pc).is_some() {
+                let next_address = u16::from(self.pc) + instruction.byte_length();
+                if self.stack_push(next_address.into()).is_some() {
                     self.pc = address.into();
                     ExecutionResult::ControlTransfer
                 } else {
@@ -952,7 +953,8 @@ impl Machine {
                     Condition::ParityOdd => !self.conditions.get(ConditionRegister::Parity),
                 };
                 if should_call {
-                    if should_call && self.stack_push(self.pc).is_some() {
+                    let next_address = u16::from(self.pc) + instruction.byte_length();
+                    if should_call && self.stack_push(next_address.into()).is_some() {
                         self.pc = address.into();
                         ExecutionResult::ControlTransfer
                     } else {
@@ -965,7 +967,7 @@ impl Machine {
             Instruction::Ret => match self.stack_pop() {
                 Some(address) => {
                     self.pc = address;
-                    ExecutionResult::Running
+                    ExecutionResult::ControlTransfer
                 }
                 None => ExecutionResult::StackUnderflow,
             },
@@ -985,7 +987,7 @@ impl Machine {
                     match self.stack_pop() {
                         Some(address) => {
                             self.pc = address;
-                            ExecutionResult::Running
+                            ExecutionResult::ControlTransfer
                         }
                         None => ExecutionResult::StackUnderflow,
                     }
