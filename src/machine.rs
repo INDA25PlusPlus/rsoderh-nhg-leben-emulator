@@ -531,7 +531,7 @@ impl Machine {
                 let result = (a as u16) + (term_complement as u16);
 
                 let ac_flag = calc_ac_flag_add(a, term_complement, false);
-                let cy_flag = (result >> 8) & 0b1 == 1;
+                let cy_flag = (result >> 8) & 0b1 != 1;
                 let result = result as u8;
                 let z_flag = result == 0;
                 let s_flag = result & 0b1000_0000 == 1;
@@ -553,7 +553,7 @@ impl Machine {
                 let result = (a as u16) + (term_complement as u16);
 
                 let ac_flag = calc_ac_flag_add(a, term_complement, false);
-                let cy_flag = (result >> 8) & 0b1 == 1;
+                let cy_flag = (result >> 8) & 0b1 != 1;
                 let result = result as u8;
                 let z_flag = result == 0;
                 let s_flag = result & 0b1000_0000 == 1;
@@ -578,7 +578,7 @@ impl Machine {
                 let result = (a as u16) + (term_complement as u16);
 
                 let ac_flag = calc_ac_flag_add(a, term_complement, false);
-                let cy_flag = (result >> 8) & 0b1 == 1 || borrow;
+                let cy_flag = (result >> 8) & 0b1 != 1 || borrow;
                 let result = result as u8;
                 let z_flag = result == 0;
                 let s_flag = result & 0b1000_0000 == 1;
@@ -602,7 +602,7 @@ impl Machine {
                 let result = (a as u16) + (term_complement as u16);
 
                 let ac_flag = calc_ac_flag_add(a, term_complement, false);
-                let cy_flag = (result >> 8) & 0b1 == 1 || borrow;
+                let cy_flag = (result >> 8) & 0b1 != 1 || !borrow;
                 let result = result as u8;
                 let z_flag = result == 0;
                 let s_flag = result & 0b1000_0000 == 1;
@@ -830,7 +830,7 @@ impl Machine {
                 let result = (a as u16) + (term_complement as u16);
 
                 let ac_flag = calc_ac_flag_add(a, term_complement, false);
-                let cy_flag = (result >> 8) & 0b1 == 1;
+                let cy_flag = (result >> 8) & 0b1 != 1;
                 let result = result as u8;
                 let z_flag = result == 0;
                 let s_flag = result & 0b1000_0000 == 1;
@@ -852,7 +852,7 @@ impl Machine {
                 let result = (a as u16) + (term_complement as u16);
 
                 let ac_flag = calc_ac_flag_add(a, term_complement, false);
-                let cy_flag = (result >> 8) & 0b1 == 1;
+                let cy_flag = (result >> 8) & 0b1 != 1;
                 let result = result as u8;
                 let z_flag = result == 0;
                 let s_flag = result & 0b1000_0000 == 1;
